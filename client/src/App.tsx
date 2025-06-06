@@ -22,15 +22,16 @@ function AppRouter() {
 
   return (
     <div className="flex h-screen bg-dark-bg text-text-primary">
-      {/* Desktop Sidebar */}
-      {!isMobile && <Sidebar sessionStatus={sessionStatus} />}
+      {/* Always render both sidebars but hide with CSS */}
+      <div className={isMobile ? "hidden" : "block"}>
+        <Sidebar sessionStatus={sessionStatus} />
+      </div>
+      
+      <div className={!isMobile ? "hidden" : "block"}>
+        <MobileSidebar sessionStatus={sessionStatus} />
+      </div>
 
-      {/* Mobile Sidebar */}
-      {isMobile && <MobileSidebar sessionStatus={sessionStatus} />}
-
-      <div
-        className={`flex-1 flex flex-col overflow-hidden ${isMobile ? "w-full" : ""}`}
-      >
+      <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           title="TikTok Creator Outreach- Digi4u Repair UK"
           subtitle="Automated influencer marketing platform"
