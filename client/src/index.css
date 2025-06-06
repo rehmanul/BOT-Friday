@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 10% 3.9%; /* #0F172A */
+  --foreground: 248 24% 98%; /* #F8FAFC */
+  --card: 240 10% 11.5%; /* #1E293B */
+  --card-foreground: 248 24% 98%; /* #F8FAFC */
+  --popover: 240 10% 11.5%; /* #1E293B */
+  --popover-foreground: 248 24% 98%; /* #F8FAFC */
+  --primary: 215 100% 60%; /* #3B82F6 */
+  --primary-foreground: 211 100% 99%; /* #FFFFFF */
+  --secondary: 243 75% 59%; /* #6366F1 */
+  --secondary-foreground: 211 100% 99%; /* #FFFFFF */
+  --muted: 240 4% 46%; /* #64748B */
+  --muted-foreground: 215 16% 47%; /* #64748B */
+  --accent: 45 93% 47%; /* #F59E0B */
+  --accent-foreground: 211 100% 99%; /* #FFFFFF */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 211 100% 99%; /* #FFFFFF */
+  --border: 240 6% 25%; /* #374151 */
+  --input: 240 6% 25%; /* #374151 */
+  --ring: 215 100% 60%; /* #3B82F6 */
+  --success: 142 76% 36%; /* #10B981 */
+  --warning: 45 93% 47%; /* #F59E0B */
+  --error: 0 84% 60%; /* #EF4444 */
+  --dark-bg: 240 10% 3.9%; /* #0F172A */
+  --card-bg: 240 10% 11.5%; /* #1E293B */
+  --text-primary: 248 24% 98%; /* #F8FAFC */
+  --text-secondary: 215 16% 58%; /* #94A3B8 */
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 240 10% 3.9%; /* #0F172A */
+  --foreground: 248 24% 98%; /* #F8FAFC */
+  --card: 240 10% 11.5%; /* #1E293B */
+  --card-foreground: 248 24% 98%; /* #F8FAFC */
+  --popover: 240 10% 11.5%; /* #1E293B */
+  --popover-foreground: 248 24% 98%; /* #F8FAFC */
+  --primary: 215 100% 60%; /* #3B82F6 */
+  --primary-foreground: 211 100% 99%; /* #FFFFFF */
+  --secondary: 240 10% 11.5%; /* #1E293B */
+  --secondary-foreground: 248 24% 98%; /* #F8FAFC */
+  --muted: 240 4% 15.9%; /* #1F2937 */
+  --muted-foreground: 215 16% 58%; /* #94A3B8 */
+  --accent: 240 4% 15.9%; /* #1F2937 */
+  --accent-foreground: 248 24% 98%; /* #F8FAFC */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 211 100% 99%; /* #FFFFFF */
+  --border: 240 6% 25%; /* #374151 */
+  --input: 240 6% 25%; /* #374151 */
+  --ring: 215 100% 60%; /* #3B82F6 */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--accent));
+  }
+}
+
+@layer utilities {
+  .text-text-primary {
+    color: hsl(var(--text-primary));
+  }
+
+  .text-text-secondary {
+    color: hsl(var(--text-secondary));
+  }
+
+  .bg-dark-bg {
+    background-color: hsl(var(--dark-bg));
+  }
+
+  .bg-card-bg {
+    background-color: hsl(var(--card-bg));
+  }
+
+  .border-slate-700 {
+    border-color: hsl(240 6% 25%);
+  }
+
+  .border-slate-600 {
+    border-color: hsl(240 6% 30%);
+  }
+
+  .bg-slate-800 {
+    background-color: hsl(240 6% 20%);
+  }
+
+  .bg-slate-700 {
+    background-color: hsl(240 6% 25%);
+  }
+
+  .bg-slate-600 {
+    background-color: hsl(240 6% 30%);
+  }
+}
