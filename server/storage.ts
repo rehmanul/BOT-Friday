@@ -74,6 +74,16 @@ export interface IStorage {
   // Analytics
   getCampaignStats(campaignId: number): Promise<any>;
   getDashboardStats(userId: number): Promise<any>;
+
+  // User Settings
+  getUserSettings(userId: number): Promise<any>;
+  updateUserSettings(userId: number, settings: any): Promise<any>;
+
+  // Creator Stats
+  updateCreatorStats(creatorId: number, stats: any): Promise<void>;
+  updateCreatorEngagement(creatorId: number, engagementRate: number): Promise<void>;
+  updateCreatorFollowers(creatorId: number, followers: number): Promise<void>;
+  getCampaignInvitationByCreator(campaignId: number, creatorId: number): Promise<CampaignInvitation | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -241,7 +251,7 @@ export class DatabaseStorage implements IStorage {
       .limit(50);
   }
 
-  async updateCreatorStats(creatorId: string, stats: any): Promise<void> {
+  async updateCreatorStats(creatorId: number, stats: any): Promise<void> {
     await db
       .update(creators)
       .set({
@@ -252,7 +262,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCreatorEngagement(
-    creatorId: string,
+    creatorId: number,
     engagementRate: number,
   ): Promise<void> {
     await db
@@ -262,7 +272,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCreatorFollowers(
-    creatorId: string,
+    creatorId: number,
     followers: number,
   ): Promise<void> {
     await db
@@ -273,7 +283,7 @@ export class DatabaseStorage implements IStorage {
 
   async getCampaignInvitationByCreator(
     campaignId: number,
-    creatorId: string,
+    creatorId: number,
   ): Promise<CampaignInvitation | null> {
     const results = await db
       .select()
