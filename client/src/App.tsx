@@ -22,14 +22,13 @@ function AppRouter() {
 
   return (
     <div className="flex h-screen bg-dark-bg text-text-primary">
-      {/* Always render both sidebars but hide with CSS */}
-      <div className={isMobile ? "hidden" : "block"}>
+      {/* Desktop Sidebar - always render but conditionally show */}
+      <div className={`${isMobile ? "hidden" : "block"}`}>
         <Sidebar sessionStatus={sessionStatus} />
       </div>
       
-      <div className={!isMobile ? "hidden" : "block"}>
-        <MobileSidebar sessionStatus={sessionStatus} />
-      </div>
+      {/* Mobile Sidebar - only render when mobile */}
+      {isMobile && <MobileSidebar sessionStatus={sessionStatus} />}
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header

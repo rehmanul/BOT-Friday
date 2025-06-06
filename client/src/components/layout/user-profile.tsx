@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { User, Settings, LogOut } from "lucide-react";
+import { User, Settings, LogOut, Bell } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -12,7 +12,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function UserProfile() {
+interface UserProfileProps {
+  notifications?: number;
+}
+
+export function UserProfile({ notifications = 0 }: UserProfileProps) {
   const [imageError, setImageError] = useState(false);
 
   const user = {
@@ -29,27 +33,39 @@ export function UserProfile() {
     .join("");
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <div className="flex items-center space-x-3 cursor-pointer hover:bg-slate-700 rounded-lg p-2 transition-colors">
-          <Avatar className="h-8 w-8">
-            {!imageError && (
-              <AvatarImage
-                src={user.avatar}
-                alt={user.fullName}
-                onError={() => setImageError(true)}
-              />
-            )}
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="text-sm hidden md:block">
-            <div className="text-white font-medium">{user.fullName}</div>
-            <div className="text-gray-400 text-xs">{user.role}</div>
+    <div className="flex items-center space-x-4">
+      {/* Notification Bell */}
+      <div className="relative">
+        <Bell className="h-5 w-5 text-gray-400 hover:text-white cursor-pointer transition-colors" />
+        {notifications > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+            {notifications}
+          </span>
+        )}
+      </div>
+
+      {/* User Profile Dropdown */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <div className="flex items-center space-x-3 cursor-pointer hover:bg-slate-700 rounded-lg p-2 transition-colors">
+            <Avatar className="h-8 w-8">
+              {!imageError && (
+                <AvatarImage
+                  src={user.avatar}
+                  alt={user.fullName}
+                  onError={() => setImageError(true)}
+                />
+              )}
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-sm hidden md:block">
+              <div className="text-white font-medium">{user.fullName}</div>
+              <div className="text-gray-400 text-xs">{user.role}</div>
+            </div>
           </div>
-        </div>
-      </DropdownMenuTrigger>
+        </DropdownMenuTrigger>
 
       <DropdownMenuContent
         className="w-56 bg-slate-800 border-slate-700"
@@ -81,5 +97,6 @@ export function UserProfile() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    </div>
   );
 }

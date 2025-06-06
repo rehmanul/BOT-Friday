@@ -38,7 +38,7 @@ export function MobileSidebar({ sessionStatus }: MobileSidebarProps) {
   return (
     <>
       {/* Mobile Header with Hamburger */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-card-bg border-b border-slate-700">
+      <div className="md:hidden flex items-center justify-between p-4 bg-card-bg border-b border-slate-700">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Activity className="h-5 w-5 text-white" />
@@ -61,7 +61,7 @@ export function MobileSidebar({ sessionStatus }: MobileSidebarProps) {
 
       {/* Mobile Sidebar Overlay */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
+        <div className="md:hidden fixed inset-0 z-50 flex">
           {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-black/50" 
