@@ -12,6 +12,10 @@ import type { DashboardStats } from '@/types';
 export default function Dashboard() {
   const userId = 1; // In a real app, this would come from authentication
   
+  // All hooks must be called in the same order every render
+  // WebSocket connection for real-time updates (moved up to ensure consistent order)
+  const { onMessage, offMessage } = useWebSocket(userId);
+  
   // Fetch dashboard stats
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ['/api/dashboard/stats', userId],
@@ -28,9 +32,6 @@ export default function Dashboard() {
   // Campaign mutations
   const startCampaignMutation = useStartCampaign();
   const pauseCampaignMutation = usePauseCampaign();
-
-  // WebSocket connection for real-time updates
-  const { onMessage, offMessage } = useWebSocket(userId);
 
   useEffect(() => {
     const handleCampaignUpdate = (message: any) => {
