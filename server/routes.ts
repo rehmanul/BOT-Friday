@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer, WebSocket } from "ws";
+
 import { storage } from "./storage";
 import { PuppeteerAutomation } from "./automation/puppeteer";
 import { AIService } from "./automation/ai-service";
@@ -12,8 +12,7 @@ import { AIModelManager } from './ai/ai-model-manager';
 
 const aiModelManager = new AIModelManager();
 
-// Store active WebSocket connections by user ID
-const activeConnections = new Map<number, WebSocket>();
+
 
 function getApiKeyName(modelId: string): string {
   const modelMapping: Record<string, string> = {
@@ -145,40 +144,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const aiService = new AIService();
   const rateLimiter = new RateLimiter();
 
-  // WebSocket server for real-time updates
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
 
-  wss.on('connection', (ws, req) => {
-    console.log('WebSocket connection established');
-
-    ws.on('message', (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        if (data.type === 'auth' && data.userId) {
-          activeConnections.set(data.userId, ws);
-        }
-      } catch (error) {
-        console.error('WebSocket message parse error:', error);
-      }
-    });
-
-    ws.on('close', () => {
-      // Remove connection when client disconnects
-      for (const [userId, connection] of activeConnections.entries()) {
-        if (connection === ws) {
-          activeConnections.delete(userId);
-          break;
-        }
-      }
-    });
-  });
-
-  // Helper function to broadcast to user
+  // Helper function to broadcast to user (using Socket.IO from index.ts)
   function broadcastToUser(userId: number, data: any) {
-    const connection = activeConnections.get(userId);
-    if (connection && connection.readyState === WebSocket.OPEN) {
-      connection.send(JSON.stringify(data));
-    }
+    // This function is now handled by Socket.IO in server/index.ts
+    console.log(`Broadcasting to user ${userId}:`, data);
   }
 
   // Dashboard stats endpoint
@@ -781,57 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Creator discovery endpoint
-  app.post('/api/creators/discover', async (req: Request, res: Response) => {
-    try {
-      const { searchTerms, category, minFollowers, maxFollowers } = req.body;
-
-      const discoveredCreators = await discoverCreators({
-        searchTerms,
-        category,
-        minFollowers,
-        maxFollowers
-      });
-
-      // Save discovered creators to database
-      const savedCreators = [];
-      for (const creatorData of discoveredCreators) {
-        try {
-          // Check if creator already exists
-          const existingCreators = await storage.getCreators({}, 1000, 0);
-          const existing = existingCreators.find(c => c.username === creatorData.username);
-
-          if (!existing) {
-            const creator = await storage.createCreator({
-              username: creatorData.username,
-              displayName: creatorData.fullName,
-              followers: creatorData.followers,
-              engagementRate: creatorData.engagementRate,
-              category: creatorData.category,
-              gmv: creatorData.avgGMV,
-              profilePicture: creatorData.profilePicture,
-              isVerified: creatorData.isVerified,
-              bio: creatorData.bio,
-              isActive: true,
-              lastUpdated: new Date()
-            });
-            savedCreators.push(creator);
-          }
-        } catch (error) {
-          console.error('Error saving discovered creator:', error);
-        }
-      }
-
-      res.json({ 
-        discovered: savedCreators.length, 
-        creators: savedCreators,
-        total: discoveredCreators.length
-      });
-    } catch (error) {
-      console.error('Creator discovery error:', error);
-      res.status(500).json({ error: 'Failed to discover creators' });
-    }
-  });
+  
 
   return httpServer;
 }
