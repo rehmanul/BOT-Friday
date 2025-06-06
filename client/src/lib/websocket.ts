@@ -1,136 +1,98 @@
-export class WebSocketClient {
-  private ws: WebSocket | null = null;
-  private userId: number | null = null;
-  private messageHandlers: Map<string, (data: any) => void> = new Map();
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 2000;
-  private isConnecting = false;
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+let ws: WebSocket | null = null;
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+let reconnectTimer: NodeJS.Timeout | null = null;
+let isConnecting = false;
 
-  get isConnected() {
-    return this.ws?.readyState === WebSocket.OPEN;
+export const connectWebSocket = (userId: number) => {
+  // Prevent multiple connection attempts
+  if (isConnecting || (ws && ws.readyState === WebSocket.OPEN)) {
+    return ws;
   }
 
-  async connect(userId: number): Promise<void> {
-    if (this.isConnecting || this.isConnected) {
-      return;
-    }
+  // Close existing connection if it's in a bad state
+  if (ws && ws.readyState !== WebSocket.CLOSED) {
+    ws.close();
+    ws = null;
+  }
 
-    this.userId = userId;
-    this.isConnecting = true;
+  isConnecting = true;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/ws`;
 
+  console.log('Connecting to WebSocket:', wsUrl);
+
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    console.log('WebSocket connected for user:', userId);
+    isConnecting = false;
+    reconnectAttempts = 0;
+
+    // Send user identification
+    ws?.send(JSON.stringify({
+      type: 'authenticate',
+      userId: userId
+    }));
+  };
+
+  ws.onmessage = (event) => {
     try {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;
-
-      console.log('Connecting to WebSocket:', wsUrl);
-
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
-        console.log('WebSocket connected for user:', this.userId);
-        this.isConnecting = false;
-        this.reconnectAttempts = 0;
-
-        // Authenticate with user ID
-        this.send({ type: 'auth', userId: this.userId });
-
-        // Start heartbeat
-        this.startHeartbeat();
-      };
-
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'pong') {
-            return; // Handle heartbeat response
-          }
-          const handler = this.messageHandlers.get(data.type);
-          if (handler) {
-            handler(data);
-          }
-        } catch (error) {
-          console.error('WebSocket message parse error:', error);
-        }
-      };
-
-      this.ws.onclose = () => {
-        console.log('WebSocket connection closed');
-        this.isConnecting = false;
-        this.ws = null;
-        this.stopHeartbeat();
-        this.attemptReconnect();
-      };
-
-      this.ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        this.isConnecting = false;
-      };
-
-    } catch (error) {
-      console.error('WebSocket connection failed:', error);
-      this.isConnecting = false;
-      this.attemptReconnect();
-    }
-  }
-
-  private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
-      if (this.isConnected) {
-        this.send({ type: 'ping' });
+      const data = JSON.parse(event.data);
+      // Handle different message types
+      switch (data.type) {
+        case 'activity_update':
+          // Trigger activity refresh
+          window.dispatchEvent(new CustomEvent('activity_update', { detail: data }));
+          break;
+        case 'campaign_update':
+          // Trigger campaign refresh
+          window.dispatchEvent(new CustomEvent('campaign_update', { detail: data }));
+          break;
+        default:
+          console.log('Unknown message type:', data.type);
       }
-    }, 30000); // Send ping every 30 seconds
-  }
-
-  private stopHeartbeat() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
+    } catch (error) {
+      console.error('Error parsing WebSocket message:', error);
     }
-  }
+  };
 
-  disconnect(): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.close();
-      this.ws = null;
+  ws.onclose = () => {
+    console.log('WebSocket connection closed');
+    isConnecting = false;
+    ws = null;
+
+    if (reconnectAttempts < maxReconnectAttempts) {
+      reconnectAttempts++;
+      console.log(`Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
+
+      reconnectTimer = setTimeout(() => {
+        connectWebSocket(userId);
+      }, 2000 * reconnectAttempts); // Exponential backoff
     }
+  };
+
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+    isConnecting = false;
+  };
+
+  return ws;
+};
+
+export const disconnectWebSocket = () => {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
   }
 
-  send(data: any): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
-    }
+  if (ws) {
+    ws.close();
+    ws = null;
   }
 
-  onMessage(type: string, handler: (data: any) => void): void {
-    this.messageHandlers.set(type, handler);
-  }
+  isConnecting = false;
+  reconnectAttempts = 0;
+};
 
-  offMessage(type: string): void {
-    this.messageHandlers.delete(type);
-  }
-
-  private handleMessage(message: any): void {
-    const handler = this.messageHandlers.get(message.type);
-    if (handler) {
-      handler(message);
-    }
-  }
-
-  private attemptReconnect(): void {
-    if (this.reconnectAttempts < this.maxReconnectAttempts && this.userId) {
-      this.reconnectAttempts++;
-      console.log(`Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-
-      setTimeout(() => {
-        if (this.userId) {
-          this.connect(this.userId);
-        }
-      }, this.reconnectDelay * this.reconnectAttempts);
-    }
-  }
-}
-
-export const wsClient = new WebSocketClient();
+export const getWebSocket = () => ws;
