@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreatorTable } from '@/components/creators/creator-table';
+import { CreatorTable, UICreator } from '@/components/creators/creator-table';
 import { CreatorProfileModal } from '@/components/creators/creator-profile-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,11 +27,28 @@ export default function Creators() {
 
   const itemsPerPage = 25;
 
-  const { data: creators = [], isLoading } = useCreators(
+  const { data, isLoading } = useCreators(
     filters, 
     itemsPerPage, 
     currentPage * itemsPerPage
   );
+
+  const creatorsRaw = data?.creators || [];
+  const totalCreators = data?.total || 0;
+
+  // Normalize creators for UI table
+  const creators: UICreator[] = creatorsRaw.map((c: Creator) => ({
+    ...c,
+    followers: typeof c.followers === 'number' ? c.followers : 0,
+    engagement: c.engagementRate ? parseFloat(c.engagementRate) : 0,
+    gmv: c.gmv ? parseFloat(c.gmv) : 0,
+    status: 'active', // TODO: derive from backend if available
+    location: c.profileData?.location || '',
+    joinedDate: c.profileData?.joinedDate || '',
+    avatar: c.profileData?.avatar || '',
+    engagementRate: c.engagementRate ? parseFloat(c.engagementRate) : 0,
+    displayName: c.displayName ?? undefined,
+  }));
 
   const discoverCreatorsMutation = useDiscoverCreators();
 
@@ -117,7 +134,7 @@ export default function Creators() {
     if (!selectedCreator) return;
 
     try {
-      const response = await fetch('/api/campaigns/send-invitation', {
+      const response = await fetch('/api/campaigns/send-invitation-direct', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,10 +149,13 @@ export default function Creators() {
         setShowInvitationDialog(false);
         setInvitationMessage('');
         setSelectedCreator(null);
-        // Show success toast or notification
-        console.log('Invitation sent successfully');
+        toast.success('Invitation Sent', 'The invitation was sent to TikTok successfully.');
+      } else {
+        const errorData = await response.json();
+        toast.error('Send Failed', errorData.error || 'Failed to send invitation.');
       }
     } catch (error) {
+      toast.error('Send Failed', error instanceof Error ? error.message : 'Failed to send invitation.');
       console.error('Failed to send invitation:', error);
     }
   };
@@ -155,7 +175,7 @@ export default function Creators() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-400">Total Creators</p>
-                  <p className="text-2xl font-bold text-white">1,247</p>
+                  <p className="text-2xl font-bold text-white">{totalCreators}</p>
                 </div>
                 <UserPlus className="h-8 w-8 text-blue-500" />
               </div>
@@ -317,23 +337,29 @@ export default function Creators() {
             {/* Creator Table */}
             <CreatorTable 
               creators={creators}
-              isLoading={isLoading}
               selectedCreators={selectedCreators}
-              onCreatorSelect={handleCreatorSelect}
+              onSelect={handleCreatorSelect}
               onSelectAll={handleSelectAll}
-              onViewProfile={handleViewProfile}
-              onSendInvitation={handleSendInvitation}
-              onViewTikTokProfile={handleViewTikTokProfile}
+              onViewProfile={(c: number) => handleViewProfile(creatorsRaw.find((cr: Creator) => cr.id === c) as Creator)}
+              onSendInvite={(c: number) => handleSendInvitation(creatorsRaw.find((cr: Creator) => cr.id === c) as Creator)}
             />
           
             {/* Creator Profile Modal */}
             {selectedCreator && (
               <CreatorProfileModal
-                creator={selectedCreator}
-                isOpen={showProfileModal}
-                onClose={() => {
-                  setShowProfileModal(false);
-                  setSelectedCreator(null);
+                creator={{
+                  ...selectedCreator,
+                  engagementRate: typeof selectedCreator.engagementRate === 'number' ? selectedCreator.engagementRate : 0,
+                  displayName: selectedCreator.displayName ?? undefined,
+                  followers: typeof selectedCreator.followers === 'number' ? selectedCreator.followers : 0,
+                  category: selectedCreator.category ?? undefined,
+                  gmv: typeof selectedCreator.gmv === 'number' ? selectedCreator.gmv : 0,
+                  lastUpdated: selectedCreator.lastUpdated ? new Date(selectedCreator.lastUpdated) : undefined,
+                }}
+                open={showProfileModal}
+                onOpenChange={(open) => {
+                  setShowProfileModal(open);
+                  if (!open) setSelectedCreator(null);
                 }}
               />
             )}
@@ -383,7 +409,7 @@ export default function Creators() {
             {/* Pagination */}
             <div className="flex items-center justify-between pt-4">
               <p className="text-sm text-gray-400">
-                Showing {currentPage * itemsPerPage + 1}-{Math.min((currentPage + 1) * itemsPerPage, 1247)} of 1,247 creators
+                Showing {totalCreators === 0 ? 0 : currentPage * itemsPerPage + 1}-{Math.min((currentPage + 1) * itemsPerPage, totalCreators)} of {totalCreators} creators
               </p>
               <div className="flex items-center space-x-2">
                 <Button 
@@ -401,7 +427,7 @@ export default function Creators() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  disabled={(currentPage + 1) * itemsPerPage >= 1247}
+                  disabled={(currentPage + 1) * itemsPerPage >= totalCreators}
                   onClick={() => setCurrentPage(currentPage + 1)}
                   className="border-slate-600 text-gray-300 hover:bg-slate-700"
                 >

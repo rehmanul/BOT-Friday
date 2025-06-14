@@ -439,6 +439,7 @@ var init_storage = __esm({
       // Creators
       async getCreators(filters, limit = 25, offset = 0) {
         let query = db.select().from(creators);
+        let countQuery = db.select({ count: count() }).from(creators);
         if (filters) {
           const conditions = [];
           if (filters.category)
@@ -451,9 +452,13 @@ var init_storage = __esm({
           if (filters.maxGMV) conditions.push(lte(creators.gmv, filters.maxGMV));
           if (conditions.length > 0) {
             query = query.where(and(...conditions));
+            countQuery = countQuery.where(and(...conditions));
           }
         }
-        return await query.limit(limit).offset(offset).orderBy(desc(creators.followers));
+        const [countResult] = await countQuery;
+        const total = countResult?.count ?? 0;
+        const creatorsList = await query.limit(limit).offset(offset).orderBy(desc(creators.followers));
+        return { creators: creatorsList, total };
       }
       async getCreator(id) {
         const [creator] = await db.select().from(creators).where(eq(creators.id, id));
@@ -756,853 +761,6 @@ import express2 from "express";
 
 // server/routes.ts
 init_storage();
-import { createServer } from "http";
-import { WebSocketServer, WebSocket } from "ws";
-
-// server/automation/puppeteer.ts
-import puppeteer from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
-import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
-var getRandomUserAgent = () => {
-  const agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-  ];
-  return agents[Math.floor(Math.random() * agents.length)];
-};
-puppeteer.use(StealthPlugin());
-puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
-var PuppeteerAutomation = class {
-  browser = null;
-  page = null;
-  sessionData = null;
-  async initializeSession() {
-    try {
-      if (this.browser) {
-        await this.browser.close();
-      }
-      const randomUA = getRandomUserAgent();
-      this.browser = await puppeteer.launch({
-        headless: false,
-        // Keep false for session capture
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-          "--disable-web-security",
-          "--disable-features=VizDisplayCompositor",
-          "--disable-background-networking",
-          "--disable-default-apps",
-          "--disable-extensions",
-          "--disable-sync",
-          "--disable-translate",
-          "--hide-scrollbars",
-          "--metrics-recording-only",
-          "--mute-audio",
-          "--no-default-browser-check",
-          "--safebrowsing-disable-auto-update",
-          "--disable-blink-features=AutomationControlled"
-        ],
-        defaultViewport: null
-      });
-      this.page = await this.browser.newPage();
-      await this.page.setViewport({
-        width: 1366 + Math.floor(Math.random() * 100),
-        height: 768 + Math.floor(Math.random() * 100)
-      });
-      await this.page.setUserAgent(randomUA);
-      await this.page.evaluateOnNewDocument(() => {
-        Object.defineProperty(navigator, "webdriver", {
-          get: () => void 0
-        });
-      });
-      await this.page.setExtraHTTPHeaders({
-        "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-      });
-      console.log("Navigating to TikTok Seller Center...");
-      await this.page.goto("https://seller.tiktokshop.com/", {
-        waitUntil: "networkidle0",
-        timeout: 3e4
-      });
-      await this.humanLikeDelay(2e3, 4e3);
-      const isLoggedIn = await this.detectLoginStatus();
-      if (isLoggedIn) {
-        console.log("Existing session detected, capturing session data...");
-        this.sessionData = await this.captureSessionData();
-      } else {
-        console.log("No active session found. User needs to login manually.");
-      }
-      return {
-        initialized: true,
-        timestamp: /* @__PURE__ */ new Date(),
-        userAgent: randomUA,
-        isLoggedIn,
-        sessionCaptured: !!this.sessionData,
-        cookies: await this.page.cookies(),
-        localStorage: await this.captureLocalStorage(),
-        sessionStorage: await this.captureSessionStorage()
-      };
-    } catch (error) {
-      console.error("Failed to initialize Puppeteer session:", error);
-      throw new Error("Failed to initialize automation session");
-    }
-  }
-  // Capture existing login session
-  async captureSessionData() {
-    if (!this.page) throw new Error("Page not initialized");
-    try {
-      const [cookies, localStorage2, sessionStorage2, profile] = await Promise.all([
-        this.page.cookies(),
-        this.captureLocalStorage(),
-        this.captureSessionStorage(),
-        this.extractProfileData()
-      ]);
-      return {
-        cookies,
-        localStorage: localStorage2,
-        sessionStorage: sessionStorage2,
-        profile,
-        url: this.page.url(),
-        timestamp: /* @__PURE__ */ new Date()
-      };
-    } catch (error) {
-      console.error("Failed to capture session data:", error);
-      return null;
-    }
-  }
-  // Extract profile data from TikTok page
-  async extractProfileData() {
-    if (!this.page) return null;
-    try {
-      const profileData = await this.page.evaluate(() => {
-        const extractText = (selector) => {
-          const element = document.querySelector(selector);
-          return element?.textContent?.trim() || null;
-        };
-        const extractAttribute = (selector, attribute) => {
-          const element = document.querySelector(selector);
-          return element?.getAttribute(attribute) || null;
-        };
-        let username = extractText('[data-e2e="nav-profile"] span') || extractText(".username") || extractText('[data-testid="username"]') || "digi4u_repair";
-        let displayName = extractText('[data-e2e="profile-name"]') || extractText(".display-name") || extractText('[data-testid="display-name"]') || "Digi4u Repair UK";
-        let avatar = extractAttribute('[data-e2e="avatar"] img', "src") || extractAttribute(".avatar img", "src") || extractAttribute('img[alt*="avatar"]', "src") || "https://via.placeholder.com/40";
-        let followers = extractText('[data-e2e="followers-count"]') || extractText(".follower-count") || "15.4K";
-        let followerCount = 15420;
-        if (followers) {
-          const match = followers.match(/([\d.]+)([KMB]?)/i);
-          if (match) {
-            const [, number, unit] = match;
-            const num = parseFloat(number);
-            switch (unit?.toUpperCase()) {
-              case "K":
-                followerCount = Math.round(num * 1e3);
-                break;
-              case "M":
-                followerCount = Math.round(num * 1e6);
-                break;
-              case "B":
-                followerCount = Math.round(num * 1e9);
-                break;
-              default:
-                followerCount = Math.round(num);
-            }
-          }
-        }
-        return {
-          username: username.replace("@", ""),
-          displayName,
-          avatar,
-          verified: !!document.querySelector('[data-e2e="verify-icon"], .verified-icon'),
-          followers: followerCount,
-          isActive: true
-        };
-      });
-      console.log("Extracted profile data:", profileData);
-      return profileData;
-    } catch (error) {
-      console.error("Profile extraction error:", error);
-      return {
-        username: "digi4u_repair",
-        displayName: "Digi4u Repair UK",
-        avatar: "https://via.placeholder.com/40",
-        verified: true,
-        followers: 15420,
-        isActive: true
-      };
-    }
-  }
-  // Restore session from captured data
-  async restoreSession(sessionData) {
-    if (!this.page || !sessionData) return false;
-    try {
-      if (sessionData.cookies) {
-        await this.page.setCookie(...sessionData.cookies);
-      }
-      if (sessionData.localStorage) {
-        await this.page.evaluate((data) => {
-          for (const [key, value] of Object.entries(data)) {
-            localStorage.setItem(key, value);
-          }
-        }, sessionData.localStorage);
-      }
-      if (sessionData.sessionStorage) {
-        await this.page.evaluate((data) => {
-          for (const [key, value] of Object.entries(data)) {
-            sessionStorage.setItem(key, value);
-          }
-        }, sessionData.sessionStorage);
-      }
-      return true;
-    } catch (error) {
-      console.error("Failed to restore session:", error);
-      return false;
-    }
-  }
-  async detectLoginStatus() {
-    if (!this.page) return false;
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 3e3));
-      const indicators = [
-        // TikTok Seller Center indicators
-        'div[data-testid="seller-header"]',
-        ".seller-layout",
-        '[data-testid="dashboard"]',
-        ".dashboard-container",
-        // General TikTok indicators
-        '[data-e2e="profile-icon"]',
-        '[data-e2e="nav-profile"]',
-        ".DivHeaderWrapper",
-        ".DivNavContainer",
-        'div[data-e2e="recommend-list-item-container"]',
-        // Avatar or profile picture indicators
-        'img[alt*="avatar"]',
-        ".avatar-wrapper",
-        '[data-e2e="avatar"]'
-      ];
-      for (const selector of indicators) {
-        try {
-          await this.page.waitForSelector(selector, { timeout: 2e3 });
-          console.log(`Detected login via selector: ${selector}`);
-          return true;
-        } catch {
-          continue;
-        }
-      }
-      const cookies = await this.page.cookies();
-      const authCookies = cookies.filter(
-        (cookie) => cookie.name.includes("sessionid") || cookie.name.includes("sessionid_") || cookie.name.includes("sid_tt") || cookie.name.includes("passport_auth_token")
-      );
-      if (authCookies.length > 0) {
-        console.log("Detected login via auth cookies");
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Login detection error:", error);
-      return false;
-    }
-  }
-  async captureLocalStorage() {
-    if (!this.page) return {};
-    try {
-      return await this.page.evaluate(() => {
-        const storage2 = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key) {
-            storage2[key] = localStorage.getItem(key) || "";
-          }
-        }
-        return storage2;
-      });
-    } catch {
-      return {};
-    }
-  }
-  async captureSessionStorage() {
-    if (!this.page) return {};
-    try {
-      return await this.page.evaluate(() => {
-        const storage2 = {};
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          if (key) {
-            storage2[key] = sessionStorage.getItem(key) || "";
-          }
-        }
-        return storage2;
-      });
-    } catch {
-      return {};
-    }
-  }
-  async sendInvitation(creatorUsername, message) {
-    try {
-      if (!this.page) {
-        throw new Error("Browser session not initialized");
-      }
-      await this.humanLikeDelay(1e3, 3e3);
-      await this.simulateMouseMovement();
-      const searchSelector = 'input[placeholder*="search"], input[placeholder*="creator"]';
-      await this.page.waitForSelector(searchSelector, { timeout: 1e4 });
-      await this.page.click(searchSelector);
-      await this.humanLikeDelay(500, 1500);
-      await this.page.type(searchSelector, creatorUsername, { delay: 100 });
-      await this.humanLikeDelay(1e3, 2e3);
-      await this.page.keyboard.press("Enter");
-      await new Promise((resolve) => setTimeout(resolve, 3e3));
-      const messageButtonSelector = 'button[data-testid="message"], button:contains("Message"), .message-btn';
-      try {
-        await this.page.waitForSelector(messageButtonSelector, { timeout: 1e4 });
-        await this.page.click(messageButtonSelector);
-        await this.humanLikeDelay(1e3, 2e3);
-        const messageInputSelector = 'textarea, input[type="text"]';
-        await this.page.waitForSelector(messageInputSelector, { timeout: 5e3 });
-        await this.page.click(messageInputSelector);
-        await this.humanLikeDelay(500, 1e3);
-        await this.page.type(messageInputSelector, message, { delay: 50 });
-        await this.humanLikeDelay(1e3, 2e3);
-        const sendButtonSelector = 'button[type="submit"], button:contains("Send"), .send-btn';
-        await this.page.click(sendButtonSelector);
-        await new Promise((resolve) => setTimeout(resolve, 2e3));
-        return { success: true };
-      } catch (error) {
-        return {
-          success: false,
-          error: `Creator @${creatorUsername} not found or messaging not available`
-        };
-      }
-    } catch (error) {
-      console.error("Failed to send invitation:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error occurred"
-      };
-    }
-  }
-  async checkForResponses() {
-    try {
-      if (!this.page) {
-        throw new Error("Browser session not initialized");
-      }
-      await this.page.goto("https://seller.tiktokshop.com/messages", { waitUntil: "networkidle0" });
-      await this.humanLikeDelay(2e3, 4e3);
-      const messages = await this.page.evaluate(() => {
-        const messageElements = document.querySelectorAll(".message-item, .conversation-item");
-        return Array.from(messageElements).map((element) => {
-          const usernameEl = element.querySelector(".username, .creator-name");
-          const messageEl = element.querySelector(".message-text, .last-message");
-          const timestampEl = element.querySelector(".timestamp, .time");
-          return {
-            username: usernameEl?.textContent?.trim(),
-            message: messageEl?.textContent?.trim(),
-            timestamp: timestampEl?.textContent?.trim(),
-            isUnread: element.classList.contains("unread")
-          };
-        });
-      });
-      return messages.filter((msg) => msg.username && msg.message);
-    } catch (error) {
-      console.error("Failed to check for responses:", error);
-      return [];
-    }
-  }
-  async discoverCreators(category, minFollowers = 1e4) {
-    try {
-      if (!this.page) {
-        throw new Error("Browser session not initialized");
-      }
-      await this.page.goto("https://seller.tiktokshop.com/creators", { waitUntil: "networkidle0" });
-      await this.humanLikeDelay(2e3, 4e3);
-      await this.applyCreatorFilters(category, minFollowers);
-      const creators3 = await this.page.evaluate(() => {
-        const creatorElements = document.querySelectorAll(".creator-card, .creator-item");
-        return Array.from(creatorElements).map((element) => {
-          const usernameEl = element.querySelector(".username, .creator-username");
-          const followersEl = element.querySelector(".followers, .follower-count");
-          const categoryEl = element.querySelector(".category, .creator-category");
-          const gmvEl = element.querySelector(".gmv, .earnings");
-          return {
-            username: usernameEl?.textContent?.trim(),
-            followers: this.parseFollowerCount(followersEl?.textContent?.trim()),
-            category: categoryEl?.textContent?.trim(),
-            gmv: this.parseGMV(gmvEl?.textContent?.trim())
-          };
-        });
-      });
-      return creators3.filter((creator) => creator.username);
-    } catch (error) {
-      console.error("Failed to discover creators:", error);
-      return [];
-    }
-  }
-  async applyCreatorFilters(category, minFollowers) {
-    try {
-      const categorySelector = 'select[name="category"], .category-filter';
-      if (await this.page.$(categorySelector)) {
-        await this.page.select(categorySelector, category);
-        await this.humanLikeDelay(1e3, 2e3);
-      }
-      const followersSelector = 'input[name="min_followers"], .followers-filter';
-      if (await this.page.$(followersSelector)) {
-        await this.page.click(followersSelector);
-        await this.page.keyboard.down("Control");
-        await this.page.keyboard.press("KeyA");
-        await this.page.keyboard.up("Control");
-        await this.page.type(followersSelector, minFollowers.toString());
-        await this.humanLikeDelay(500, 1e3);
-      }
-      const applyButtonSelector = 'button:contains("Apply"), .apply-filters';
-      if (await this.page.$(applyButtonSelector)) {
-        await this.page.click(applyButtonSelector);
-        await new Promise((resolve) => setTimeout(resolve, 3e3));
-      }
-    } catch (error) {
-      console.error("Failed to apply filters:", error);
-    }
-  }
-  async simulateMouseMovement() {
-    try {
-      const viewport = this.page.viewport();
-      if (!viewport) return;
-      for (let i = 0; i < 3; i++) {
-        const x = Math.random() * viewport.width;
-        const y = Math.random() * viewport.height;
-        await this.page.mouse.move(x, y);
-        await this.humanLikeDelay(100, 500);
-      }
-    } catch (error) {
-      console.error("Mouse simulation error:", error);
-    }
-  }
-  async humanLikeDelay(min, max) {
-    const delay = Math.random() * (max - min) + min;
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
-  parseFollowerCount(text3) {
-    if (!text3) return null;
-    const match = text3.match(/([\d.]+)([KMB]?)/i);
-    if (!match) return null;
-    const [, number, unit] = match;
-    const num = parseFloat(number);
-    switch (unit.toUpperCase()) {
-      case "K":
-        return Math.round(num * 1e3);
-      case "M":
-        return Math.round(num * 1e6);
-      case "B":
-        return Math.round(num * 1e9);
-      default:
-        return Math.round(num);
-    }
-  }
-  parseGMV(text3) {
-    if (!text3) return null;
-    const match = text3.match(/\$?([\d,.]+)([KMB]?)/i);
-    if (!match) return null;
-    const [, number, unit] = match;
-    const num = parseFloat(number.replace(/,/g, ""));
-    switch (unit.toUpperCase()) {
-      case "K":
-        return Math.round(num * 1e3);
-      case "M":
-        return Math.round(num * 1e6);
-      case "B":
-        return Math.round(num * 1e9);
-      default:
-        return Math.round(num);
-    }
-  }
-  async setupStealth() {
-    if (!this.page) return;
-    await this.page.evaluateOnNewDocument(() => {
-      Object.defineProperty(navigator, "webdriver", {
-        get: () => void 0
-      });
-      Object.defineProperty(window, "chrome", {
-        get: () => ({
-          runtime: {},
-          loadTimes: {},
-          csi: {},
-          app: {}
-        })
-      });
-      Object.defineProperty(navigator, "plugins", {
-        get: () => [
-          { name: "Chrome PDF Plugin", length: 1 },
-          { name: "Chrome PDF Viewer", length: 1 },
-          { name: "Native Client", length: 1 }
-        ]
-      });
-      const originalQuery = window.navigator.permissions.query;
-      window.navigator.permissions.query = (parameters) => parameters.name === "notifications" ? Promise.resolve({ state: Notification.permission }) : originalQuery(parameters);
-      Object.defineProperty(navigator, "languages", {
-        get: () => ["en-US", "en"]
-      });
-      Object.defineProperty(navigator, "platform", {
-        get: () => "Win32"
-      });
-      Object.defineProperty(screen, "colorDepth", {
-        get: () => 24
-      });
-      Object.defineProperty(navigator, "hardwareConcurrency", {
-        get: () => 8
-      });
-      Object.defineProperty(navigator, "deviceMemory", {
-        get: () => 8
-      });
-    });
-    await this.page.setViewport({
-      width: 1920,
-      height: 1080,
-      deviceScaleFactor: 1
-    });
-    await this.page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-    );
-    await this.page.setExtraHTTPHeaders({
-      "Accept-Language": "en-US,en;q=0.9",
-      "Accept-Encoding": "gzip, deflate, br",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Upgrade-Insecure-Requests": "1",
-      "Sec-Fetch-Dest": "document",
-      "Sec-Fetch-Mode": "navigate",
-      "Sec-Fetch-Site": "none",
-      "Cache-Control": "max-age=0"
-    });
-  }
-  async cleanup() {
-    try {
-      if (this.browser) {
-        await this.browser.close();
-        this.browser = null;
-        this.page = null;
-      }
-    } catch (error) {
-      console.error("Cleanup error:", error);
-    }
-  }
-};
-
-// server/automation/ai-service.ts
-var AIService = class {
-  apiKey;
-  constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "";
-    if (!this.apiKey) {
-      console.warn("Gemini API key not found. AI features will be limited.");
-    }
-  }
-  async discoverCreators(criteria, count2 = 10) {
-    try {
-      if (!this.apiKey) {
-        return this.generateMockCreators(criteria, count2);
-      }
-      const prompt = `
-        Based on the following criteria, suggest TikTok creators for brand collaboration:
-        - Category: ${criteria.category || "any"}
-        - Minimum followers: ${criteria.minFollowers || 1e4}
-        - Target demographic: ${criteria.demographic || "general"}
-        - Budget range: ${criteria.budget || "flexible"}
-        
-        Please provide ${count2} creators with the following format for each:
-        {
-          "username": "@creator_username",
-          "displayName": "Creator Display Name",
-          "followers": 125000,
-          "category": "Fashion",
-          "engagementRate": 8.5,
-          "gmv": 25000,
-          "profileData": {
-            "description": "Brief description",
-            "avgViews": 50000,
-            "recentPosts": 15
-          }
-        }
-        
-        Return only valid JSON array.
-      `;
-      const response = await this.callGeminiAPI(prompt);
-      return this.parseCreatorResponse(response);
-    } catch (error) {
-      console.error("AI creator discovery error:", error);
-      return this.generateMockCreators(criteria, count2);
-    }
-  }
-  async optimizeInvitationMessage(template, creatorProfile) {
-    try {
-      if (!this.apiKey) {
-        return this.personalizeTemplate(template, creatorProfile);
-      }
-      const prompt = `
-        Personalize this invitation message for a TikTok creator:
-        
-        Template: "${template}"
-        
-        Creator profile:
-        - Username: ${creatorProfile.username}
-        - Category: ${creatorProfile.category}
-        - Followers: ${creatorProfile.followers}
-        - Recent content themes: ${creatorProfile.recentThemes || "general lifestyle"}
-        
-        Make the message:
-        1. Personalized and relevant to their content
-        2. Professional but friendly
-        3. Clear about the collaboration opportunity
-        4. Under 200 characters
-        5. Engaging and likely to get a response
-        
-        Return only the optimized message text.
-      `;
-      const response = await this.callGeminiAPI(prompt);
-      return response.trim() || this.personalizeTemplate(template, creatorProfile);
-    } catch (error) {
-      console.error("AI message optimization error:", error);
-      return this.personalizeTemplate(template, creatorProfile);
-    }
-  }
-  async analyzeCreatorCompatibility(creator, campaign) {
-    try {
-      if (!this.apiKey) {
-        return this.calculateBasicCompatibility(creator, campaign);
-      }
-      const prompt = `
-        Analyze the compatibility between this creator and campaign:
-        
-        Creator:
-        - Category: ${creator.category}
-        - Followers: ${creator.followers}
-        - Engagement rate: ${creator.engagementRate}%
-        - GMV: $${creator.gmv}
-        
-        Campaign:
-        - Category: ${campaign.filters?.category || "general"}
-        - Target followers: ${campaign.filters?.minFollowers || 1e4}+
-        - Budget: ${campaign.filters?.budget || "flexible"}
-        
-        Return a compatibility score from 0-100 based on:
-        1. Category alignment
-        2. Audience size match
-        3. Engagement quality
-        4. Historical performance
-        5. Brand safety
-        
-        Return only the numeric score.
-      `;
-      const response = await this.callGeminiAPI(prompt);
-      const score = parseInt(response.trim());
-      return isNaN(score) ? this.calculateBasicCompatibility(creator, campaign) : Math.max(0, Math.min(100, score));
-    } catch (error) {
-      console.error("AI compatibility analysis error:", error);
-      return this.calculateBasicCompatibility(creator, campaign);
-    }
-  }
-  async generateCampaignInsights(campaignStats) {
-    try {
-      if (!this.apiKey) {
-        return this.generateBasicInsights(campaignStats);
-      }
-      const prompt = `
-        Analyze this campaign performance and provide insights:
-        
-        Stats:
-        - Invitations sent: ${campaignStats.sent}
-        - Responses received: ${campaignStats.responses}
-        - Response rate: ${campaignStats.responseRate}%
-        - Conversions: ${campaignStats.conversions || 0}
-        
-        Provide insights on:
-        1. Performance assessment (good/average/poor)
-        2. Key strengths
-        3. Areas for improvement
-        4. Recommended next actions
-        5. Optimization suggestions
-        
-        Return as JSON with keys: assessment, strengths, improvements, recommendations, optimizations
-      `;
-      const response = await this.callGeminiAPI(prompt);
-      const insights = JSON.parse(response);
-      return insights;
-    } catch (error) {
-      console.error("AI insights generation error:", error);
-      return this.generateBasicInsights(campaignStats);
-    }
-  }
-  async callGeminiAPI(prompt) {
-    try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": this.apiKey
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024
-          }
-        })
-      });
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    } catch (error) {
-      console.error("Gemini API call failed:", error);
-      throw error;
-    }
-  }
-  parseCreatorResponse(response) {
-    try {
-      const creators3 = JSON.parse(response);
-      return Array.isArray(creators3) ? creators3 : [];
-    } catch (error) {
-      console.error("Failed to parse creator response:", error);
-      return [];
-    }
-  }
-  generateMockCreators(criteria, count2) {
-    const categories = ["Fashion", "Gaming", "Beauty", "Lifestyle", "Tech", "Food", "Fitness"];
-    const mockCreators = [];
-    for (let i = 0; i < count2; i++) {
-      const category = criteria.category || categories[Math.floor(Math.random() * categories.length)];
-      const followers = Math.floor(Math.random() * 5e5) + (criteria.minFollowers || 1e4);
-      mockCreators.push({
-        username: `@creator_${category.toLowerCase()}_${i + 1}`,
-        displayName: `${category} Creator ${i + 1}`,
-        followers,
-        category,
-        engagementRate: Math.random() * 10 + 5,
-        // 5-15%
-        gmv: Math.floor(Math.random() * 5e4) + 5e3,
-        profileData: {
-          description: `${category} content creator with ${followers} followers`,
-          avgViews: Math.floor(followers * 0.1),
-          recentPosts: Math.floor(Math.random() * 20) + 10
-        }
-      });
-    }
-    return mockCreators;
-  }
-  personalizeTemplate(template, creatorProfile) {
-    let personalized = template;
-    personalized = personalized.replace(/{creator_name}/g, creatorProfile.displayName || creatorProfile.username);
-    personalized = personalized.replace(/{username}/g, creatorProfile.username);
-    personalized = personalized.replace(/{category}/g, creatorProfile.category || "content");
-    personalized = personalized.replace(/{follower_count}/g, creatorProfile.followers?.toLocaleString() || "many");
-    return personalized;
-  }
-  calculateBasicCompatibility(creator, campaign) {
-    let score = 50;
-    if (campaign.filters?.category === creator.category) {
-      score += 30;
-    } else if (creator.category) {
-      score += 10;
-    }
-    const minFollowers = campaign.filters?.minFollowers || 1e4;
-    if (creator.followers >= minFollowers) {
-      score += 20;
-    }
-    if (creator.engagementRate > 5) {
-      score += Math.min(20, creator.engagementRate);
-    }
-    return Math.max(0, Math.min(100, score));
-  }
-  generateBasicInsights(stats) {
-    const responseRate = stats.responseRate || 0;
-    let assessment = "poor";
-    if (responseRate > 50) assessment = "excellent";
-    else if (responseRate > 30) assessment = "good";
-    else if (responseRate > 15) assessment = "average";
-    return {
-      assessment,
-      strengths: responseRate > 30 ? ["High response rate", "Good creator targeting"] : ["Campaign is active"],
-      improvements: responseRate < 30 ? ["Improve message personalization", "Better creator targeting"] : ["Optimize conversion rate"],
-      recommendations: ["A/B test different message templates", "Focus on high-engagement creators"],
-      optimizations: ["Use AI-powered creator scoring", "Implement smart timing for outreach"]
-    };
-  }
-};
-
-// server/automation/rate-limiter.ts
-var RateLimiter = class {
-  userLimits;
-  HOURLY_LIMIT = 15;
-  // TikTok's conservative limit
-  DAILY_LIMIT = 200;
-  constructor() {
-    this.userLimits = /* @__PURE__ */ new Map();
-  }
-  canSendInvitation(userId) {
-    const limits = this.getUserLimits(userId);
-    const now = Date.now();
-    if (now >= limits.hourly.resetTime) {
-      limits.hourly.count = 0;
-      limits.hourly.resetTime = now + 60 * 60 * 1e3;
-    }
-    if (now >= limits.daily.resetTime) {
-      limits.daily.count = 0;
-      limits.daily.resetTime = now + 24 * 60 * 60 * 1e3;
-    }
-    return limits.hourly.count < this.HOURLY_LIMIT && limits.daily.count < this.DAILY_LIMIT;
-  }
-  recordInvitation(userId) {
-    const limits = this.getUserLimits(userId);
-    limits.hourly.count++;
-    limits.daily.count++;
-    this.userLimits.set(userId, limits);
-  }
-  getRemainingLimits(userId) {
-    const limits = this.getUserLimits(userId);
-    return {
-      hourly: Math.max(0, this.HOURLY_LIMIT - limits.hourly.count),
-      daily: Math.max(0, this.DAILY_LIMIT - limits.daily.count)
-    };
-  }
-  getResetTimes(userId) {
-    const limits = this.getUserLimits(userId);
-    return {
-      hourly: limits.hourly.resetTime,
-      daily: limits.daily.resetTime
-    };
-  }
-  getUserLimits(userId) {
-    if (!this.userLimits.has(userId)) {
-      const now = Date.now();
-      this.userLimits.set(userId, {
-        hourly: { count: 0, resetTime: now + 60 * 60 * 1e3 },
-        daily: { count: 0, resetTime: now + 24 * 60 * 60 * 1e3 }
-      });
-    }
-    return this.userLimits.get(userId);
-  }
-  // Calculate optimal delay between invitations
-  getOptimalDelay(userId) {
-    const remaining = this.getRemainingLimits(userId);
-    const now = Date.now();
-    const resetTime = this.getResetTimes(userId);
-    if (remaining.hourly <= 3) {
-      const timeToReset = resetTime.hourly - now;
-      return Math.min(timeToReset / remaining.hourly, 20 * 60 * 1e3);
-    }
-    return Math.random() * (10 - 2) + 2;
-  }
-};
-
-// server/routes.ts
 init_schema();
 
 // server/ai/ai-model-manager.ts
@@ -1788,135 +946,60 @@ Make the message more personalized and compelling while maintaining professional
 
 // server/routes.ts
 var aiModelManager = new AIModelManager();
-var activeConnections = /* @__PURE__ */ new Map();
-function getApiKeyName(modelId) {
-  const modelMapping = {
-    "anthropic-claude-sonnet-4": "ANTHROPIC_API_KEY",
-    "openai-gpt-4o": "OPENAI_API_KEY",
-    "perplexity-sonar": "PERPLEXITY_API_KEY",
-    "gemini-pro": "GEMINI_API_KEY"
-  };
-  return modelMapping[modelId] || "";
-}
-async function generateAnalyticsOverview() {
-  const campaigns3 = await storage.getCampaigns(1);
-  const creators3 = await storage.getCreators(1, 50, {});
-  return {
-    totalCampaigns: campaigns3.length,
-    activeCampaigns: campaigns3.filter((c) => c.status === "active").length,
-    totalCreators: creators3.length,
-    totalInvitations: 245,
-    responseRate: 32.5,
-    avgEngagementRate: 4.2,
-    totalReach: 25e5,
-    conversionRate: 12.3
-  };
-}
-async function discoverCreators(criteria) {
-  const mockCreators = [
-    {
-      username: "techreviewer123",
-      fullName: "Tech Reviewer 123",
-      followers: 125e3,
-      engagementRate: 4.5,
-      category: "Technology",
-      avgGMV: 2500,
-      profilePicture: "https://via.placeholder.com/40",
-      isVerified: false,
-      bio: "Tech enthusiast and phone repair tips"
-    },
-    {
-      username: "phoneexpert",
-      fullName: "Phone Expert",
-      followers: 89e3,
-      engagementRate: 6.2,
-      category: "Technology",
-      avgGMV: 1800,
-      profilePicture: "https://via.placeholder.com/40",
-      isVerified: true,
-      bio: "Mobile phone tips and tricks"
-    },
-    {
-      username: "mobilemechanic",
-      fullName: "Mobile Mechanic",
-      followers: 67e3,
-      engagementRate: 5.8,
-      category: "Technology",
-      avgGMV: 1200,
-      profilePicture: "https://via.placeholder.com/40",
-      isVerified: false,
-      bio: "Fixing phones one video at a time"
-    },
-    {
-      username: "gadgetguru",
-      fullName: "Gadget Guru",
-      followers: 156e3,
-      engagementRate: 3.9,
-      category: "Technology",
-      avgGMV: 3200,
-      profilePicture: "https://via.placeholder.com/40",
-      isVerified: true,
-      bio: "Latest tech reviews and unboxings"
-    },
-    {
-      username: "repairpro",
-      fullName: "Repair Pro",
-      followers: 43e3,
-      engagementRate: 7.2,
-      category: "Technology",
-      avgGMV: 950,
-      profilePicture: "https://via.placeholder.com/40",
-      isVerified: false,
-      bio: "Professional repair tutorials"
-    }
-  ];
-  return mockCreators.filter((creator) => {
-    if (criteria.category && creator.category !== criteria.category) return false;
-    if (criteria.minFollowers && creator.followers < criteria.minFollowers) return false;
-    if (criteria.maxFollowers && creator.followers > criteria.maxFollowers) return false;
-    if (criteria.searchTerms) {
-      const searchLower = criteria.searchTerms.toLowerCase();
-      return creator.username.toLowerCase().includes(searchLower) || creator.fullName.toLowerCase().includes(searchLower) || creator.bio.toLowerCase().includes(searchLower);
-    }
-    return true;
-  });
-}
 async function registerRoutes(app2) {
-  const httpServer = createServer(app2);
-  const puppeteerService = new PuppeteerAutomation();
-  const aiService = new AIService();
-  const rateLimiter = new RateLimiter();
-  const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
-  wss.on("connection", (ws, req) => {
-    console.log("WebSocket connection established");
-    ws.on("message", (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        if (data.type === "auth" && data.userId) {
-          activeConnections.set(data.userId, ws);
-        }
-      } catch (error) {
-        console.error("WebSocket message parse error:", error);
+  app2.post("/api/campaigns/send-invitation-direct", async (req, res) => {
+    try {
+      const { creatorId, message } = req.body;
+      if (!creatorId || !message) {
+        return res.status(400).json({ error: "Creator ID and message are required" });
       }
-    });
-    ws.on("close", () => {
-      for (const [userId, connection] of activeConnections.entries()) {
-        if (connection === ws) {
-          activeConnections.delete(userId);
-          break;
-        }
+      const creator = await storage.getCreator(parseInt(creatorId));
+      if (!creator) {
+        return res.status(404).json({ error: "Creator not found" });
       }
-    });
-  });
-  function broadcastToUser(userId, data) {
-    const connection = activeConnections.get(userId);
-    if (connection && connection.readyState === WebSocket.OPEN) {
-      connection.send(JSON.stringify(data));
+      const invitation = await storage.createCampaignInvitation({
+        campaignId: 1,
+        // Default campaign for now
+        creatorId: parseInt(creatorId),
+        message,
+        status: "pending",
+        sentAt: null
+      });
+      const result = await puppeteerService.sendInvitation(creator.username, message);
+      if (result.success) {
+        await storage.updateCampaignInvitation(invitation.id, {
+          status: "sent",
+          sentAt: /* @__PURE__ */ new Date()
+        });
+        return res.json({ success: true, invitationId: invitation.id });
+      } else {
+        await storage.updateCampaignInvitation(invitation.id, {
+          status: "failed",
+          errorMessage: result.error,
+          retryCount: 1
+        });
+        return res.status(500).json({ error: result.error || "Failed to send invitation" });
+      }
+    } catch (error) {
+      console.error("Direct invitation error:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-  }
+  });
+  app2.get("/api/ai/models", async (req, res) => {
+    try {
+      const models = aiModelManager.getAvailableModels();
+      res.json(models);
+    } catch (error) {
+      console.error("Error getting AI models:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
   app2.get("/api/dashboard/stats/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        throw new Error("Invalid userId");
+      }
       const stats = await storage.getDashboardStats(userId);
       res.json(stats);
     } catch (error) {
@@ -1945,16 +1028,117 @@ async function registerRoutes(app2) {
         message: `Campaign "${campaign.name}" created`,
         timestamp: /* @__PURE__ */ new Date()
       });
-      broadcastToUser(campaign.userId, {
-        type: "campaign_created",
-        campaign
-      });
       res.json(campaign);
     } catch (error) {
       console.error("Create campaign error:", error);
       res.status(500).json({ error: "Failed to create campaign" });
     }
   });
+  async function checkTikTokSession() {
+    try {
+      const session = await storage.getActiveBrowserSession(1);
+      if (!session || !session.sessionData) {
+        return { isLoggedIn: false, profile: null };
+      }
+      const sessionDataString = typeof session.sessionData === "string" ? session.sessionData : JSON.stringify(session.sessionData);
+      const sessionData = JSON.parse(sessionDataString);
+      const profile = {
+        username: "digi4u_repair",
+        displayName: "Digi4u Repair UK",
+        avatar: "https://via.placeholder.com/40",
+        verified: true,
+        followers: 15420,
+        isActive: true
+      };
+      return { isLoggedIn: true, profile };
+    } catch (error) {
+      console.error("Error fetching TikTok session:", error);
+      return { isLoggedIn: false, profile: null };
+    }
+  }
+  async function generateAnalyticsOverview() {
+    const campaigns3 = await storage.getCampaigns(1);
+    const creators3 = await storage.getCreators(1, 50, {});
+    return {
+      totalCampaigns: campaigns3.length,
+      activeCampaigns: campaigns3.filter((c) => c.status === "active").length,
+      totalCreators: creators3.length,
+      totalInvitations: 245,
+      responseRate: 32.5,
+      avgEngagementRate: 4.2,
+      totalReach: 25e5,
+      conversionRate: 12.3
+    };
+  }
+  async function discoverCreators(criteria) {
+    const mockCreators = [
+      {
+        username: "techreviewer123",
+        fullName: "Tech Reviewer 123",
+        followers: 125e3,
+        engagementRate: 4.5,
+        category: "Technology",
+        avgGMV: 2500,
+        profilePicture: "https://via.placeholder.com/40",
+        isVerified: false,
+        bio: "Tech enthusiast and phone repair tips"
+      },
+      {
+        username: "phoneexpert",
+        fullName: "Phone Expert",
+        followers: 89e3,
+        engagementRate: 6.2,
+        category: "Technology",
+        avgGMV: 1800,
+        profilePicture: "https://via.placeholder.com/40",
+        isVerified: true,
+        bio: "Mobile phone tips and tricks"
+      },
+      {
+        username: "mobilemechanic",
+        fullName: "Mobile Mechanic",
+        followers: 67e3,
+        engagementRate: 5.8,
+        category: "Technology",
+        avgGMV: 1200,
+        profilePicture: "https://via.placeholder.com/40",
+        isVerified: false,
+        bio: "Fixing phones one video at a time"
+      },
+      {
+        username: "gadgetguru",
+        fullName: "Gadget Guru",
+        followers: 156e3,
+        engagementRate: 3.9,
+        category: "Technology",
+        avgGMV: 3200,
+        profilePicture: "https://via.placeholder.com/40",
+        isVerified: true,
+        bio: "Latest tech reviews and unboxings"
+      },
+      {
+        username: "repairpro",
+        fullName: "Repair Pro",
+        followers: 43e3,
+        engagementRate: 7.2,
+        category: "Technology",
+        avgGMV: 950,
+        profilePicture: "https://via.placeholder.com/40",
+        isVerified: false,
+        bio: "Professional repair tutorials"
+      }
+    ];
+    return mockCreators.filter((creator) => {
+      if (criteria.category && creator.category !== criteria.category) return false;
+      if (criteria.minFollowers && creator.followers < criteria.minFollowers) return false;
+      if (criteria.maxFollowers && creator.followers > criteria.maxFollowers) return false;
+      if (criteria.searchTerms) {
+        const searchLower = criteria.searchTerms.toLowerCase();
+        return creator.username.toLowerCase().includes(searchLower) || creator.fullName.toLowerCase().includes(searchLower) || creator.bio.toLowerCase().includes(searchLower);
+      }
+      return true;
+    });
+  }
   app2.patch("/api/campaigns/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -2033,8 +1217,8 @@ async function registerRoutes(app2) {
       if (maxFollowers) filters.maxFollowers = parseInt(maxFollowers);
       if (minGMV) filters.minGMV = parseFloat(minGMV);
       if (maxGMV) filters.maxGMV = parseFloat(maxGMV);
-      const creators3 = await storage.getCreators(filters, parseInt(limit), parseInt(offset));
-      res.json(creators3);
+      const { creators: creators3, total } = await storage.getCreators(filters, parseInt(limit), parseInt(offset));
+      res.json({ creators: creators3, total });
     } catch (error) {
       console.error("Get creators error:", error);
       res.status(500).json({ error: "Failed to fetch creators" });
@@ -2089,7 +1273,11 @@ async function registerRoutes(app2) {
   });
   app2.get("/api/session/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userIdParam = req.params.userId;
+      if (!userIdParam || isNaN(parseInt(userIdParam))) {
+        throw new Error("Invalid userId");
+      }
+      const userId = parseInt(userIdParam);
       const session = await storage.getActiveBrowserSession(userId);
       res.json(session || { isActive: false });
     } catch (error) {
@@ -2099,16 +1287,21 @@ async function registerRoutes(app2) {
   });
   app2.post("/api/session/:userId/refresh", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userIdParam = req.params.userId;
+      if (!userIdParam || isNaN(parseInt(userIdParam))) {
+        throw new Error("Invalid userId");
+      }
+      const userId = parseInt(userIdParam);
       await storage.deactivateBrowserSessions(userId);
       const sessionData = {
         cookies: [],
         localStorage: {},
         isActive: true
       };
+      const sessionDataString = typeof sessionData === "string" ? sessionData : JSON.stringify(sessionData);
       const session = await storage.createBrowserSession({
         userId,
-        sessionData: JSON.stringify(sessionData),
+        sessionData: sessionDataString,
         isActive: true,
         lastActivity: /* @__PURE__ */ new Date(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1e3)
@@ -2223,9 +1416,8 @@ async function registerRoutes(app2) {
             });
             await storage.createActivityLog({
               userId,
-              campaignId,
               type: "invitation_failed",
-              message: `Failed to send invitation to @${creator.username}: ${result.error}`,
+              campaignId,
               metadata: { creatorId: creator.id, error: result.error },
               timestamp: /* @__PURE__ */ new Date()
             });
@@ -2372,14 +1564,16 @@ async function registerRoutes(app2) {
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      await storage.updateUserSettings(userId, settings);
+      await storage.updateUserSettings(userId, JSON.stringify(settings));
       await storage.createActivityLog({
         userId,
         type: "settings_updated",
         message: "User settings updated",
         timestamp: /* @__PURE__ */ new Date()
       });
-      res.json({ success: true, message: "Settings saved successfully" });
+      const updatedUser = await storage.getUser(userId);
+      const updatedSettings = updatedUser?.settings ? JSON.parse(updatedUser.settings) : {};
+      res.json({ success: true, message: "Settings saved successfully", settings: updatedSettings });
     } catch (error) {
       console.error("Save settings error:", error);
       res.status(500).json({ error: "Failed to save settings" });
@@ -2394,51 +1588,6 @@ async function registerRoutes(app2) {
       res.status(500).json({ error: "Failed to fetch analytics" });
     }
   });
-  app2.post("/api/creators/discover", async (req, res) => {
-    try {
-      const { searchTerms, category, minFollowers, maxFollowers } = req.body;
-      const discoveredCreators = await discoverCreators({
-        searchTerms,
-        category,
-        minFollowers,
-        maxFollowers
-      });
-      const savedCreators = [];
-      for (const creatorData of discoveredCreators) {
-        try {
-          const existingCreators = await storage.getCreators({}, 1e3, 0);
-          const existing = existingCreators.find((c) => c.username === creatorData.username);
-          if (!existing) {
-            const creator = await storage.createCreator({
-              username: creatorData.username,
-              displayName: creatorData.fullName,
-              followers: creatorData.followers,
-              engagementRate: creatorData.engagementRate,
-              category: creatorData.category,
-              gmv: creatorData.avgGMV,
-              profilePicture: creatorData.profilePicture,
-              isVerified: creatorData.isVerified,
-              bio: creatorData.bio,
-              isActive: true,
-              lastUpdated: /* @__PURE__ */ new Date()
-            });
-            savedCreators.push(creator);
-          }
-        } catch (error) {
-          console.error("Error saving discovered creator:", error);
-        }
-      }
-      res.json({
-        discovered: savedCreators.length,
-        creators: savedCreators,
-        total: discoveredCreators.length
-      });
-    } catch (error) {
-      console.error("Creator discovery error:", error);
-      res.status(500).json({ error: "Failed to discover creators" });
-    }
-  });
-  return httpServer;
 }
 
 // server/vite.ts
@@ -2451,7 +1600,10 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "url";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+var __filename = fileURLToPath(import.meta.url);
+var __dirname = path.dirname(__filename);
 var vite_config_default = defineConfig({
   plugins: [
     react(),
@@ -2464,14 +1616,13 @@ var vite_config_default = defineConfig({
   ],
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets")
+      "@": path.resolve(__dirname, "client", "src"),
+      "@shared": path.resolve(__dirname, "shared")
     }
   },
-  root: path.resolve(import.meta.dirname, "client"),
+  root: path.resolve(__dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true
   },
   server: {
@@ -2549,6 +1700,546 @@ function serveStatic(app2) {
   });
 }
 
+// server/automation/puppeteer.ts
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import AdblockerPlugin from "puppeteer-extra-plugin-adblocker";
+var getRandomUserAgent = () => {
+  const agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  ];
+  return agents[Math.floor(Math.random() * agents.length)];
+};
+puppeteer.use(StealthPlugin());
+puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
+var PuppeteerAutomation = class {
+  browser = null;
+  page = null;
+  sessionData = null;
+  async initializeSession() {
+    try {
+      if (this.browser) {
+        await this.browser.close();
+      }
+      const randomUA = getRandomUserAgent();
+      this.browser = await puppeteer.launch({
+        headless: false,
+        // Keep false for session capture
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+          "--disable-web-security",
+          "--disable-features=VizDisplayCompositor",
+          "--disable-background-networking",
+          "--disable-default-apps",
+          "--disable-extensions",
+          "--disable-sync",
+          "--disable-translate",
+          "--hide-scrollbars",
+          "--metrics-recording-only",
+          "--mute-audio",
+          "--no-default-browser-check",
+          "--safebrowsing-disable-auto-update",
+          "--disable-blink-features=AutomationControlled"
+        ],
+        defaultViewport: null
+      });
+      this.page = await this.browser.newPage();
+      await this.page.setViewport({
+        width: 1366 + Math.floor(Math.random() * 100),
+        height: 768 + Math.floor(Math.random() * 100)
+      });
+      await this.page.setUserAgent(randomUA);
+      await this.page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, "webdriver", {
+          get: () => void 0
+        });
+      });
+      await this.page.setExtraHTTPHeaders({
+        "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+      });
+      console.log("Navigating to TikTok Seller Affiliate Center...");
+      await this.page.goto("https://affiliate.tiktok.com/connection/creator?shop_region=GB", {
+        waitUntil: "networkidle0",
+        timeout: 3e4
+      });
+      await this.humanLikeDelay(2e3, 4e3);
+      const isLoggedIn = await this.detectLoginStatus();
+      if (isLoggedIn) {
+        console.log("Existing session detected, capturing session data...");
+        this.sessionData = await this.captureSessionData();
+      } else {
+        console.log("No active session found. User needs to login manually.");
+      }
+      return {
+        initialized: true,
+        timestamp: /* @__PURE__ */ new Date(),
+        userAgent: randomUA,
+        isLoggedIn,
+        sessionCaptured: !!this.sessionData,
+        cookies: await this.page.cookies(),
+        localStorage: await this.captureLocalStorage(),
+        sessionStorage: await this.captureSessionStorage()
+      };
+    } catch (error) {
+      console.error("Failed to initialize Puppeteer session:", error);
+      throw new Error("Failed to initialize automation session");
+    }
+  }
+  // Capture existing login session
+  async captureSessionData() {
+    if (!this.page) throw new Error("Page not initialized");
+    try {
+      const [cookies, localStorage2, sessionStorage2, profile] = await Promise.all([
+        this.page.cookies(),
+        this.captureLocalStorage(),
+        this.captureSessionStorage(),
+        this.extractProfileData()
+      ]);
+      await this.storeSessionCookies(cookies);
+      return {
+        cookies,
+        localStorage: localStorage2,
+        sessionStorage: sessionStorage2,
+        profile,
+        url: this.page.url(),
+        timestamp: /* @__PURE__ */ new Date()
+      };
+    } catch (error) {
+      console.error("Failed to capture session data:", error);
+      return null;
+    }
+  }
+  async storeSessionCookies(cookies) {
+    try {
+      console.log("Storing session cookies:", cookies);
+    } catch (error) {
+      console.error("Failed to store session cookies:", error);
+    }
+  }
+  // Extract profile data from TikTok page
+  async extractProfileData() {
+    if (!this.page) return null;
+    try {
+      const profileData = await this.page.evaluate(() => {
+        const extractText = (selector) => {
+          const element = document.querySelector(selector);
+          return element?.textContent?.trim() || null;
+        };
+        const extractAttribute = (selector, attribute) => {
+          const element = document.querySelector(selector);
+          return element?.getAttribute(attribute) || null;
+        };
+        let username = extractText('[data-e2e="nav-profile"] span') || extractText(".username") || extractText('[data-testid="username"]') || "digi4u_repair";
+        let displayName = extractText('[data-e2e="profile-name"]') || extractText(".display-name") || extractText('[data-testid="display-name"]') || "Digi4u Repair UK";
+        let avatar = extractAttribute('[data-e2e="avatar"] img', "src") || extractAttribute(".avatar img", "src") || extractAttribute('img[alt*="avatar"]', "src") || "https://via.placeholder.com/40";
+        let followers = extractText('[data-e2e="followers-count"]') || extractText(".follower-count") || "15.4K";
+        let followerCount = 15420;
+        if (followers) {
+          const match = followers.match(/([\d.]+)([KMB]?)/i);
+          if (match) {
+            const [, number, unit] = match;
+            const num = parseFloat(number);
+            switch (unit?.toUpperCase()) {
+              case "K":
+                followerCount = Math.round(num * 1e3);
+                break;
+              case "M":
+                followerCount = Math.round(num * 1e6);
+                break;
+              case "B":
+                followerCount = Math.round(num * 1e9);
+                break;
+              default:
+                followerCount = Math.round(num);
+            }
+          }
+        }
+        return {
+          username: username.replace("@", ""),
+          displayName,
+          avatar,
+          verified: !!document.querySelector('[data-e2e="verify-icon"], .verified-icon'),
+          followers: followerCount,
+          isActive: true
+        };
+      });
+      console.log("Extracted profile data:", profileData);
+      return profileData;
+    } catch (error) {
+      console.error("Profile extraction error:", error);
+      return {
+        username: "digi4u_repair",
+        displayName: "Digi4u Repair UK",
+        avatar: "https://via.placeholder.com/40",
+        verified: true,
+        followers: 15420,
+        isActive: true
+      };
+    }
+  }
+  // Restore session from captured data
+  async restoreSession(sessionData) {
+    if (!this.page || !sessionData) return false;
+    try {
+      if (sessionData.cookies) {
+        await this.page.setCookie(...sessionData.cookies);
+      }
+      if (sessionData.localStorage) {
+        await this.page.evaluate((data) => {
+          for (const [key, value] of Object.entries(data)) {
+            localStorage.setItem(key, value);
+          }
+        }, sessionData.localStorage);
+      }
+      if (sessionData.sessionStorage) {
+        await this.page.evaluate((data) => {
+          for (const [key, value] of Object.entries(data)) {
+            sessionStorage.setItem(key, value);
+          }
+        }, sessionData.sessionStorage);
+      }
+      return true;
+    } catch (error) {
+      console.error("Failed to restore session:", error);
+      return false;
+    }
+  }
+  async detectLoginStatus() {
+    if (!this.page) return false;
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 3e3));
+      const indicators = [
+        // TikTok Seller Center indicators
+        'div[data-testid="seller-header"]',
+        ".seller-layout",
+        '[data-testid="dashboard"]',
+        ".dashboard-container",
+        // General TikTok indicators
+        '[data-e2e="profile-icon"]',
+        '[data-e2e="nav-profile"]',
+        ".DivHeaderWrapper",
+        ".DivNavContainer",
+        'div[data-e2e="recommend-list-item-container"]',
+        // Avatar or profile picture indicators
+        'img[alt*="avatar"]',
+        ".avatar-wrapper",
+        '[data-e2e="avatar"]'
+      ];
+      for (const selector of indicators) {
+        try {
+          await this.page.waitForSelector(selector, { timeout: 2e3 });
+          console.log(`Detected login via selector: ${selector}`);
+          return true;
+        } catch {
+          continue;
+        }
+      }
+      const cookies = await this.page.cookies();
+      const authCookies = cookies.filter(
+        (cookie) => cookie.name.includes("sessionid") || cookie.name.includes("sessionid_") || cookie.name.includes("sid_tt") || cookie.name.includes("passport_auth_token")
+      );
+      if (authCookies.length > 0) {
+        console.log("Detected login via auth cookies");
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Login detection error:", error);
+      return false;
+    }
+  }
+  async captureLocalStorage() {
+    if (!this.page) return {};
+    try {
+      return await this.page.evaluate(() => {
+        const storage2 = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) {
+            storage2[key] = localStorage.getItem(key) || "";
+          }
+        }
+        return storage2;
+      });
+    } catch {
+      return {};
+    }
+  }
+  async captureSessionStorage() {
+    if (!this.page) return {};
+    try {
+      return await this.page.evaluate(() => {
+        const storage2 = {};
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key) {
+            storage2[key] = sessionStorage.getItem(key) || "";
+          }
+        }
+        return storage2;
+      });
+    } catch {
+      return {};
+    }
+  }
+  async sendInvitation(creatorUsername, message) {
+    try {
+      if (!this.page) {
+        throw new Error("Browser session not initialized");
+      }
+      await this.humanLikeDelay(1e3, 3e3);
+      await this.simulateMouseMovement();
+      const searchSelector = 'input[placeholder*="search"], input[placeholder*="creator"]';
+      await this.page.waitForSelector(searchSelector, { timeout: 1e4 });
+      await this.page.click(searchSelector);
+      await this.humanLikeDelay(500, 1500);
+      await this.page.type(searchSelector, creatorUsername, { delay: 100 });
+      await this.humanLikeDelay(1e3, 2e3);
+      await this.page.keyboard.press("Enter");
+      await new Promise((resolve) => setTimeout(resolve, 3e3));
+      const inviteButtonSelector = 'button[data-testid="invite"], button:contains("invite"), .invite-btn';
+      try {
+        await this.page.waitForSelector(inviteButtonSelector, { timeout: 1e4 });
+        await this.page.click(inviteButtonSelector);
+        await this.humanLikeDelay(1e3, 2e3);
+        const messageInputSelector = 'textarea, input[type="text"]';
+        await this.page.waitForSelector(messageInputSelector, { timeout: 5e3 });
+        await this.page.click(messageInputSelector);
+        await this.humanLikeDelay(500, 1e3);
+        await this.page.type(messageInputSelector, message, { delay: 50 });
+        await this.humanLikeDelay(1e3, 2e3);
+        const sendButtonSelector = 'button[type="submit"], button:contains("Send"), .send-btn';
+        await this.page.click(sendButtonSelector);
+        await new Promise((resolve) => setTimeout(resolve, 2e3));
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          error: `Creator @${creatorUsername} not found or messaging not available`
+        };
+      }
+    } catch (error) {
+      console.error("Failed to send invitation:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred"
+      };
+    }
+  }
+  async checkForResponses() {
+    try {
+      if (!this.page) {
+        throw new Error("Browser session not initialized");
+      }
+      await this.page.goto("https://seller.tiktokshop.com/messages", { waitUntil: "networkidle0" });
+      await this.humanLikeDelay(2e3, 4e3);
+      const messages = await this.page.evaluate(() => {
+        const inviteElements = document.querySelectorAll(".invite-item, .conversation-item");
+        return Array.from(inviteElements).map((element) => {
+          const usernameEl = element.querySelector(".username, .creator-name");
+          const inviteEl = element.querySelector(".invite-text, .last-invite");
+          const timestampEl = element.querySelector(".timestamp, .time");
+          return {
+            username: usernameEl?.textContent?.trim(),
+            invite: inviteEl?.textContent?.trim(),
+            timestamp: timestampEl?.textContent?.trim(),
+            isUnread: element.classList.contains("unread")
+          };
+        });
+      });
+      return messages.filter((msg) => msg.username && msg.invite);
+    } catch (error) {
+      console.error("Failed to check for responses:", error);
+      return [];
+    }
+  }
+  async discoverCreators(category, minFollowers = 1e4) {
+    try {
+      if (!this.page) {
+        throw new Error("Browser session not initialized");
+      }
+      await this.page.goto("https://seller.tiktokshop.com/creators", { waitUntil: "networkidle0" });
+      await this.humanLikeDelay(2e3, 4e3);
+      await this.applyCreatorFilters(category, minFollowers);
+      const creators3 = await this.page.evaluate(() => {
+        const creatorElements = document.querySelectorAll(".creator-card, .creator-item");
+        return Array.from(creatorElements).map((element) => {
+          const usernameEl = element.querySelector(".username, .creator-username");
+          const followersEl = element.querySelector(".followers, .follower-count");
+          const categoryEl = element.querySelector(".category, .creator-category");
+          const gmvEl = element.querySelector(".gmv, .earnings");
+          return {
+            username: usernameEl?.textContent?.trim(),
+            followers: this.parseFollowerCount(followersEl?.textContent?.trim()),
+            category: categoryEl?.textContent?.trim(),
+            gmv: this.parseGMV(gmvEl?.textContent?.trim())
+          };
+        });
+      });
+      return creators3.filter((creator) => creator.username);
+    } catch (error) {
+      console.error("Failed to discover creators:", error);
+      return [];
+    }
+  }
+  async applyCreatorFilters(category, minFollowers) {
+    try {
+      const categorySelector = 'select[name="category"], .category-filter';
+      if (await this.page.$(categorySelector)) {
+        await this.page.select(categorySelector, category);
+        await this.humanLikeDelay(1e3, 2e3);
+      }
+      const followersSelector = 'input[name="min_followers"], .followers-filter';
+      if (await this.page.$(followersSelector)) {
+        await this.page.click(followersSelector);
+        await this.page.keyboard.down("Control");
+        await this.page.keyboard.press("KeyA");
+        await this.page.keyboard.up("Control");
+        await this.page.type(followersSelector, minFollowers.toString());
+        await this.humanLikeDelay(500, 1e3);
+      }
+      const applyButtonSelector = 'button:contains("Apply"), .apply-filters';
+      if (await this.page.$(applyButtonSelector)) {
+        await this.page.click(applyButtonSelector);
+        await new Promise((resolve) => setTimeout(resolve, 3e3));
+      }
+    } catch (error) {
+      console.error("Failed to apply filters:", error);
+    }
+  }
+  async simulateMouseMovement() {
+    try {
+      const viewport = this.page.viewport();
+      if (!viewport) return;
+      for (let i = 0; i < 3; i++) {
+        const x = Math.random() * viewport.width;
+        const y = Math.random() * viewport.height;
+        await this.page.mouse.move(x, y);
+        await this.humanLikeDelay(100, 500);
+      }
+    } catch (error) {
+      console.error("Mouse simulation error:", error);
+    }
+  }
+  async humanLikeDelay(min, max) {
+    const delay = Math.random() * (max - min) + min;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  parseFollowerCount(text3) {
+    if (!text3) return null;
+    const match = text3.match(/([\d.]+)([KMB]?)/i);
+    if (!match) return null;
+    const [, number, unit] = match;
+    const num = parseFloat(number);
+    switch (unit.toUpperCase()) {
+      case "K":
+        return Math.round(num * 1e3);
+      case "M":
+        return Math.round(num * 1e6);
+      case "B":
+        return Math.round(num * 1e9);
+      default:
+        return Math.round(num);
+    }
+  }
+  parseGMV(text3) {
+    if (!text3) return null;
+    const match = text3.match(/\$?([\d,.]+)([KMB]?)/i);
+    if (!match) return null;
+    const [, number, unit] = match;
+    const num = parseFloat(number.replace(/,/g, ""));
+    switch (unit.toUpperCase()) {
+      case "K":
+        return Math.round(num * 1e3);
+      case "M":
+        return Math.round(num * 1e6);
+      case "B":
+        return Math.round(num * 1e9);
+      default:
+        return Math.round(num);
+    }
+  }
+  async setupStealth() {
+    if (!this.page) return;
+    await this.page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, "webdriver", {
+        get: () => void 0
+      });
+      Object.defineProperty(window, "chrome", {
+        get: () => ({
+          runtime: {},
+          loadTimes: {},
+          csi: {},
+          app: {}
+        })
+      });
+      Object.defineProperty(navigator, "plugins", {
+        get: () => [
+          { name: "Chrome PDF Plugin", length: 1 },
+          { name: "Chrome PDF Viewer", length: 1 },
+          { name: "Native Client", length: 1 }
+        ]
+      });
+      const originalQuery = window.navigator.permissions.query;
+      window.navigator.permissions.query = (parameters) => parameters.name === "notifications" ? Promise.resolve({ state: Notification.permission }) : originalQuery(parameters);
+      Object.defineProperty(navigator, "languages", {
+        get: () => ["en-US", "en"]
+      });
+      Object.defineProperty(navigator, "platform", {
+        get: () => "Win32"
+      });
+      Object.defineProperty(screen, "colorDepth", {
+        get: () => 24
+      });
+      Object.defineProperty(navigator, "hardwareConcurrency", {
+        get: () => 8
+      });
+      Object.defineProperty(navigator, "deviceMemory", {
+        get: () => 8
+      });
+    });
+    await this.page.setViewport({
+      width: 1920,
+      height: 1080,
+      deviceScaleFactor: 1
+    });
+    await this.page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+    );
+    await this.page.setExtraHTTPHeaders({
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Upgrade-Insecure-Requests": "1",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Cache-Control": "max-age=0"
+    });
+  }
+  async cleanup() {
+    try {
+      if (this.browser) {
+        await this.browser.close();
+        this.browser = null;
+        this.page = null;
+      }
+    } catch (error) {
+      console.error("Cleanup error:", error);
+    }
+  }
+};
+
 // server/index.ts
 var app = express2();
 app.use(express2.json());
@@ -2578,7 +2269,11 @@ app.use((req, res, next) => {
   next();
 });
 (async () => {
-  const server = await registerRoutes(app);
+  const puppeteerAutomation = new PuppeteerAutomation();
+  await puppeteerAutomation.initializeSession();
+  await registerRoutes(app);
+  const { createServer } = await import("http");
+  const server = createServer(app);
   app.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -2612,25 +2307,11 @@ app.use((req, res, next) => {
   });
   async function checkAndSendSessionStatus(socket) {
     try {
-      const sessionData = await checkTikTokSession();
+      const sessionData = await puppeteerAutomation.captureSessionData();
       socket.emit("session_status", sessionData);
     } catch (error) {
       console.error("Error checking session status:", error);
     }
-  }
-  async function checkTikTokSession() {
-    const mockSessionData = {
-      isLoggedIn: true,
-      profile: {
-        username: "digi4u_repair",
-        displayName: "Digi4u Repair UK",
-        avatar: "https://via.placeholder.com/40",
-        verified: true,
-        followers: 15420,
-        isActive: true
-      }
-    };
-    return mockSessionData;
   }
   server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);

@@ -1,5 +1,4 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
+import type { Express, Request, Response } from "express";
 
 import { storage } from "./storage";
 import { PuppeteerAutomation } from "./automation/puppeteer";
@@ -7,38 +6,150 @@ import { AIService } from "./automation/ai-service";
 import { RateLimiter } from "./automation/rate-limiter";
 import { insertCampaignSchema, insertCreatorSchema, insertCampaignInvitationSchema } from "@shared/schema";
 import { z } from "zod";
-import { Request, Response } from 'express';
 import { AIModelManager } from './ai/ai-model-manager';
 
 const aiModelManager = new AIModelManager();
 
+export async function registerRoutes(app: Express) {
+  // Directly send a real invitation (create + automate)
+  app.post('/api/campaigns/send-invitation-direct', async (req: Request, res: Response) => {
+    try {
+      const { creatorId, message } = req.body;
+      if (!creatorId || !message) {
+        return res.status(400).json({ error: 'Creator ID and message are required' });
+      }
+
+      // Get creator details
+      const creator = await storage.getCreator(parseInt(creatorId));
+      if (!creator) {
+        return res.status(404).json({ error: 'Creator not found' });
+      }
+
+      // Create invitation record
+      const invitation = await storage.createCampaignInvitation({
+        campaignId: 1, // Default campaign for now
+        creatorId: parseInt(creatorId),
+        message,
+        status: 'pending',
+        sentAt: null
+      });
+
+      // Send invitation using Puppeteer immediately
+      const result = await puppeteerService.sendInvitation(creator.username, message);
+
+      if (result.success) {
+        await storage.updateCampaignInvitation(invitation.id, {
+          status: 'sent',
+          sentAt: new Date()
+        });
+        return res.json({ success: true, invitationId: invitation.id });
+      } else {
+        await storage.updateCampaignInvitation(invitation.id, {
+          status: 'failed',
+          errorMessage: result.error,
+          retryCount: 1
+        });
+        return res.status(500).json({ error: result.error || 'Failed to send invitation' });
+      }
+    } catch (error) {
+      console.error('Direct invitation error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  // List available AI models (with config status)
+  app.get('/api/ai/models', async (req: Request, res: Response) => {
+    try {
+      const models = aiModelManager.getAvailableModels();
+      res.json(models);
+    } catch (error) {
+      console.error('Error getting AI models:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 
 
-function getApiKeyName(modelId: string): string {
-  const modelMapping: Record<string, string> = {
-    'anthropic-claude-sonnet-4': 'ANTHROPIC_API_KEY',
-    'openai-gpt-4o': 'OPENAI_API_KEY',
-    'perplexity-sonar': 'PERPLEXITY_API_KEY',
-    'gemini-pro': 'GEMINI_API_KEY'
-  };
-  return modelMapping[modelId] || '';
-}
+
+
+
+// Move all route registrations here (incremental refactor)
+// --- Dashboard stats endpoint ---
+  app.get("/api/dashboard/stats/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        throw new Error("Invalid userId");
+      }
+      const stats = await storage.getDashboardStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Dashboard stats error:", error);
+      res.status(500).json({ error: "Failed to fetch dashboard stats" });
+    }
+  });
+
+// --- Campaigns endpoints ---
+  app.get("/api/campaigns/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const campaigns = await storage.getCampaigns(userId);
+      res.json(campaigns);
+    } catch (error) {
+      console.error("Get campaigns error:", error);
+      res.status(500).json({ error: "Failed to fetch campaigns" });
+    }
+  });
+
+  app.post("/api/campaigns", async (req, res) => {
+    try {
+      const campaignData = insertCampaignSchema.parse(req.body);
+      const campaign = await storage.createCampaign(campaignData);
+
+      // Log activity
+      await storage.createActivityLog({
+        userId: campaign.userId,
+        campaignId: campaign.id,
+        type: "campaign_created",
+        message: `Campaign "${campaign.name}" created`,
+        timestamp: new Date()
+      });
+
+      // Optionally: broadcastToUser(campaign.userId, { type: 'campaign_created', campaign });
+
+      res.json(campaign);
+    } catch (error) {
+      console.error("Create campaign error:", error);
+      res.status(500).json({ error: "Failed to create campaign" });
+    }
+  });
 
 async function checkTikTokSession() {
-  // Mock session data for now - in production this would check actual browser session
-  const mockSessionData = {
-    isLoggedIn: true,
-    profile: {
+  // Fetch real session data from database or PuppeteerAutomation
+  try {
+    // Example: fetch active browser session for user 1
+    const session = await storage.getActiveBrowserSession(1);
+    if (!session || !session.sessionData) {
+      return { isLoggedIn: false, profile: null };
+    }
+    // Defensive check: ensure sessionData is string before parsing
+    const sessionDataString = typeof session.sessionData === 'string' ? session.sessionData : JSON.stringify(session.sessionData);
+    const sessionData = JSON.parse(sessionDataString);
+
+    // Extract profile info from sessionData or PuppeteerAutomation
+    // For now, mock profile based on sessionData presence
+    const profile = {
       username: 'digi4u_repair',
       displayName: 'Digi4u Repair UK',
       avatar: 'https://via.placeholder.com/40',
       verified: true,
       followers: 15420,
       isActive: true
-    }
-  };
+    };
 
-  return mockSessionData;
+    return { isLoggedIn: true, profile };
+  } catch (error) {
+    console.error('Error fetching TikTok session:', error);
+    return { isLoggedIn: false, profile: null };
+  }
 }
 
 async function generateAnalyticsOverview() {
@@ -135,72 +246,6 @@ async function discoverCreators(criteria: {
     return true;
   });
 }
-
-export async function registerRoutes(app: Express): Promise<Server> {
-  const httpServer = createServer(app);
-
-  // Initialize services
-  const puppeteerService = new PuppeteerAutomation();
-  const aiService = new AIService();
-  const rateLimiter = new RateLimiter();
-
-  
-
-  // Helper function to broadcast to user (using Socket.IO from index.ts)
-  function broadcastToUser(userId: number, data: any) {
-    // This function is now handled by Socket.IO in server/index.ts
-    console.log(`Broadcasting to user ${userId}:`, data);
-  }
-
-  // Dashboard stats endpoint
-  app.get("/api/dashboard/stats/:userId", async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const stats = await storage.getDashboardStats(userId);
-      res.json(stats);
-    } catch (error) {
-      console.error("Dashboard stats error:", error);
-      res.status(500).json({ error: "Failed to fetch dashboard stats" });
-    }
-  });
-
-  // Campaigns endpoints
-  app.get("/api/campaigns/:userId", async (req, res) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const campaigns = await storage.getCampaigns(userId);
-      res.json(campaigns);
-    } catch (error) {
-      console.error("Get campaigns error:", error);
-      res.status(500).json({ error: "Failed to fetch campaigns" });
-    }
-  });
-
-  app.post("/api/campaigns", async (req, res) => {
-    try {
-      const campaignData = insertCampaignSchema.parse(req.body);
-      const campaign = await storage.createCampaign(campaignData);
-
-      // Log activity
-      await storage.createActivityLog({
-        userId: campaign.userId,
-        campaignId: campaign.id,
-        type: "campaign_created",
-        message: `Campaign "${campaign.name}" created`,
-        timestamp: new Date()
-      });
-
-      broadcastToUser(campaign.userId, {
-        type: 'campaign_created',
-        campaign
-      });
-
-      res.json(campaign);
-    } catch (error) {
-      console.error("Create campaign error:", error);
-      res.status(500).json({ error: "Failed to create campaign" });
-    }
-  });
 
   app.patch("/api/campaigns/:id", async (req, res) => {
     try {
@@ -304,8 +349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (minGMV) filters.minGMV = parseFloat(minGMV as string);
       if (maxGMV) filters.maxGMV = parseFloat(maxGMV as string);
 
-      const creators = await storage.getCreators(filters, parseInt(limit as string), parseInt(offset as string));
-      res.json(creators);
+      const { creators, total } = await storage.getCreators(filters, parseInt(limit as string), parseInt(offset as string));
+      res.json({ creators, total });
     } catch (error) {
       console.error("Get creators error:", error);
       res.status(500).json({ error: "Failed to fetch creators" });
@@ -369,7 +414,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Browser session endpoints
   app.get("/api/session/:userId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userIdParam = req.params.userId;
+      if (!userIdParam || isNaN(parseInt(userIdParam))) {
+        throw new Error("Invalid userId");
+      }
+      const userId = parseInt(userIdParam);
       const session = await storage.getActiveBrowserSession(userId);
       res.json(session || { isActive: false });
     } catch (error) {
@@ -378,9 +427,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   app.post("/api/session/:userId/refresh", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userIdParam = req.params.userId;
+      if (!userIdParam || isNaN(parseInt(userIdParam))) {
+        throw new Error("Invalid userId");
+      }
+      const userId = parseInt(userIdParam);
 
       // Deactivate existing sessions
       await storage.deactivateBrowserSessions(userId);
@@ -392,9 +446,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true
       };
 
+      // Defensive: ensure sessionData is string
+      const sessionDataString = typeof sessionData === 'string' ? sessionData : JSON.stringify(sessionData);
+
       const session = await storage.createBrowserSession({
         userId,
-        sessionData: JSON.stringify(sessionData),
+        sessionData: sessionDataString,
         isActive: true,
         lastActivity: new Date(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
@@ -532,20 +589,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             rateLimiter.recordInvitation(userId);
 
           } else {
-            await storage.updateCampaignInvitation(invitation.id, {
-              status: "failed",
-              errorMessage: result.error,
-              retryCount: (invitation.retryCount || 0) + 1
-            });
+      await storage.updateCampaignInvitation(invitation.id, {
+        status: "failed",
+        errorMessage: result.error,
+        retryCount: (invitation.retryCount || 0) + 1
+      });
 
-            await storage.createActivityLog({
-              userId,
-              campaignId,
-              type: "invitation_failed",
-              message: `Failed to send invitation to @${creator.username}: ${result.error}`,
-              metadata: { creatorId: creator.id, error: result.error },
-              timestamp: new Date()
-            });
+          await storage.createActivityLog({
+            userId,
+            type: "invitation_failed",
+            campaignId,
+            metadata: { creatorId: creator.id, error: result.error },
+            timestamp: new Date()
+          });
           }
 
           // Human-like delay between invitations
@@ -725,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      await storage.updateUserSettings(userId, settings);
+      await storage.updateUserSettings(userId, JSON.stringify(settings));
 
       await storage.createActivityLog({
         userId,
@@ -734,7 +790,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date()
       });
 
-      res.json({ success: true, message: 'Settings saved successfully' });
+      // Fetch the updated settings from DB and return them
+      const updatedUser = await storage.getUser(userId);
+      const updatedSettings = updatedUser?.settings ? JSON.parse(updatedUser.settings) : {};
+      res.json({ success: true, message: 'Settings saved successfully', settings: updatedSettings });
     } catch (error) {
       console.error('Save settings error:', error);
       res.status(500).json({ error: 'Failed to save settings' });
@@ -754,5 +813,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   
 
-  return httpServer;
+  // (If you have any return value, adjust as needed. Otherwise, just end the function.)
 }

@@ -1,4 +1,25 @@
-import { useState } from 'react';
+import { AIModelSelector } from '@/components/ui/ai-model-selector';
+import { useAIModels } from '@/hooks/use-ai-models';
+  // AI Model selection state
+  const { data: aiModels = [], isLoading: modelsLoading } = useAIModels();
+  const [selectedModel, setSelectedModel] = useState<string>('');
+
+  // Set default selected model if not set
+  useEffect(() => {
+    if (!selectedModel && aiModels.length > 0) {
+      setSelectedModel(aiModels[0].id);
+    }
+  }, [aiModels, selectedModel]);
+
+  const handleModelChange = (modelId: string) => {
+    setSelectedModel(modelId);
+    handleSettingChange('aiModel', modelId);
+  };
+
+  const handleConfigureWebhook = () => {
+    toast.info('Configure Webhook', 'Webhook configuration coming soon!');
+  };
+import { useState, useEffect } from 'react';
 import { Save, RefreshCw, Shield, Bell, User, Key, Database } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +35,7 @@ import { toast } from '@/components/ui/toast-system';
 
 export default function Settings() {
   const [isSaving, setIsSaving] = useState(false);
-  const [settings, setSettings] = useState({
+  const defaultSettings = {
     // Profile Settings
     username: 'john_smith',
     email: 'john.smith@example.com',
@@ -53,16 +74,48 @@ Best regards,
     concurrentSessions: 1,
     requestTimeout: 30,
     retryAttempts: 3,
-  });
+  };
+  const [settings, setSettings] = useState(defaultSettings);
+
+  // Load settings from localStorage or API on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/settings/1');
+        if (res.ok) {
+          const data = await res.json();
+          setSettings({ ...defaultSettings, ...data });
+          localStorage.setItem('userSettings', JSON.stringify({ ...defaultSettings, ...data }));
+        } else {
+          // fallback to localStorage if API fails
+          const local = localStorage.getItem('userSettings');
+          if (local) {
+            setSettings({ ...defaultSettings, ...JSON.parse(local) });
+          }
+        }
+      } catch (e) {
+        // fallback to localStorage if API fails
+        const local = localStorage.getItem('userSettings');
+        if (local) {
+          setSettings({ ...defaultSettings, ...JSON.parse(local) });
+        }
+      }
+    };
+    loadSettings();
+  }, []);
 
   const handleSettingChange = (key: string, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings(prev => {
+      const updated = { ...prev, [key]: value };
+      localStorage.setItem('userSettings', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleSaveSettings = async () => {
     try {
       setIsSaving(true);
-
+      // Save to backend
       const response = await fetch('/api/settings/1', {
         method: 'POST',
         headers: {
@@ -70,12 +123,15 @@ Best regards,
         },
         body: JSON.stringify(settings),
       });
-
       if (!response.ok) {
         throw new Error('Failed to save settings');
       }
-
       const result = await response.json();
+      // Use the updated settings from backend if available
+      if (result.settings) {
+        setSettings({ ...defaultSettings, ...result.settings });
+        localStorage.setItem('userSettings', JSON.stringify({ ...defaultSettings, ...result.settings }));
+      }
       toast.success('Settings Saved', result.message || 'Your configuration has been updated successfully');
     } catch (error) {
       console.error('Settings save error:', error);
@@ -93,6 +149,8 @@ Best regards,
   };
 
   const handleResetToDefaults = () => {
+    setSettings(defaultSettings);
+    localStorage.setItem('userSettings', JSON.stringify(defaultSettings));
     toast.warning('Settings Reset', 'All settings have been reset to default values');
   };
 
@@ -308,6 +366,33 @@ Best regards,
                   </Badge>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Model Selector */}
+          <Card className="bg-card-bg border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <Settings className="h-5 w-5 mr-2" />
+                AI Model Selection
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {modelsLoading ? (
+                <div className="text-gray-400">Loading models...</div>
+              ) : (
+                <AIModelSelector
+                  selectedModel={selectedModel}
+                  onModelChange={handleModelChange}
+                  onConfigureWebhook={handleConfigureWebhook}
+                  models={aiModels}
+                />
+              )}
+              {selectedModel && (
+                <div className="text-xs text-gray-400 mt-2">
+                  Selected Model: <span className="font-semibold text-white">{selectedModel}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 

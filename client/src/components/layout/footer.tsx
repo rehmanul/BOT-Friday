@@ -9,8 +9,7 @@ export function Footer() {
             <p>&copy; 2024 TikTok Creator Outreach. All rights reserved.</p>
             <p className="text-xs mt-1">
               Credit for <span className="text-primary font-medium">Digi4u Repair UK</span>, 
-              developed by <span className="text-primary font-medium">Md Rehmanul Alam</span> 
-              (<span className="text-primary font-medium">Replit Devs.</span>)
+              developed by <span className="text-primary font-medium">Md Rehmanul Alam</span>
             </p>
           </div>
 

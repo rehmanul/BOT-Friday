@@ -81,9 +81,9 @@ export class PuppeteerAutomation {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
       });
 
-      // Navigate to TikTok Seller Center
-      console.log('Navigating to TikTok Seller Center...');
-      await this.page.goto('https://seller.tiktokshop.com/', { 
+      // Navigate to TikTok Seller Affiliate Center
+      console.log('Navigating to TikTok Seller Affiliate Center...');
+      await this.page.goto('https://affiliate.tiktok.com/connection/creator?shop_region=GB', { 
         waitUntil: 'networkidle0',
         timeout: 30000
       });
@@ -130,6 +130,9 @@ export class PuppeteerAutomation {
         this.extractProfileData()
       ]);
 
+      // Store session cookies for reuse
+      await this.storeSessionCookies(cookies);
+
       return {
         cookies,
         localStorage,
@@ -144,6 +147,18 @@ export class PuppeteerAutomation {
     }
   }
 
+  private async storeSessionCookies(cookies: any[]) {
+    try {
+      // Save cookies to a persistent store or file
+      // For example, save to a JSON file or database
+      // Here, just log for demonstration
+      console.log('Storing session cookies:', cookies);
+      // TODO: Implement actual storage logic
+    } catch (error) {
+      console.error('Failed to store session cookies:', error);
+    }
+  }
+
   // Extract profile data from TikTok page
   private async extractProfileData(): Promise<any> {
     if (!this.page) return null;
@@ -151,12 +166,12 @@ export class PuppeteerAutomation {
     try {
       const profileData = await this.page.evaluate(() => {
         // Try to extract profile data from various TikTok selectors
-        const extractText = (selector: string) => {
+        const extractText = (selector: string): string | null => {
           const element = document.querySelector(selector);
           return element?.textContent?.trim() || null;
         };
 
-        const extractAttribute = (selector: string, attribute: string) => {
+        const extractAttribute = (selector: string, attribute: string): string | null => {
           const element = document.querySelector(selector);
           return element?.getAttribute(attribute) || null;
         };
@@ -382,38 +397,38 @@ export class PuppeteerAutomation {
       await this.page.keyboard.press('Enter');
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Look for creator profile or message button
-      const messageButtonSelector = 'button[data-testid="message"], button:contains("Message"), .message-btn';
+      // Look for creator profile or invite button
+        const inviteButtonSelector = 'button[data-testid="invite"], button:contains("invite"), .invite-btn';
 
-      try {
-        await this.page.waitForSelector(messageButtonSelector, { timeout: 10000 });
-        await this.page.click(messageButtonSelector);
-        await this.humanLikeDelay(1000, 2000);
+        try {
+          await this.page.waitForSelector(inviteButtonSelector, { timeout: 10000 });
+          await this.page.click(inviteButtonSelector);
+          await this.humanLikeDelay(1000, 2000);
 
-        // Type message
-        const messageInputSelector = 'textarea, input[type="text"]';
-        await this.page.waitForSelector(messageInputSelector, { timeout: 5000 });
+          // Type message
+          const messageInputSelector = 'textarea, input[type="text"]';
+          await this.page.waitForSelector(messageInputSelector, { timeout: 5000 });
 
-        await this.page.click(messageInputSelector);
-        await this.humanLikeDelay(500, 1000);
+          await this.page.click(messageInputSelector);
+          await this.humanLikeDelay(500, 1000);
 
-        await this.page.type(messageInputSelector, message, { delay: 50 });
-        await this.humanLikeDelay(1000, 2000);
+          await this.page.type(messageInputSelector, message, { delay: 50 });
+          await this.humanLikeDelay(1000, 2000);
 
-        // Send message
-        const sendButtonSelector = 'button[type="submit"], button:contains("Send"), .send-btn';
-        await this.page.click(sendButtonSelector);
+          // Send message
+          const sendButtonSelector = 'button[type="submit"], button:contains("Send"), .send-btn';
+          await this.page.click(sendButtonSelector);
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
 
-        return { success: true };
+          return { success: true };
 
-      } catch (error) {
-        return { 
-          success: false, 
-          error: `Creator @${creatorUsername} not found or messaging not available`
-        };
-      }
+        } catch (error) {
+          return { 
+            success: false, 
+            error: `Creator @${creatorUsername} not found or messaging not available`
+          };
+        }
 
     } catch (error) {
       console.error('Failed to send invitation:', error);
@@ -434,24 +449,24 @@ export class PuppeteerAutomation {
       await this.page.goto('https://seller.tiktokshop.com/messages', { waitUntil: 'networkidle0' });
       await this.humanLikeDelay(2000, 4000);
 
-      // Extract message list
+      // Extract invite list
       const messages = await this.page.evaluate(() => {
-        const messageElements = document.querySelectorAll('.message-item, .conversation-item');
-        return Array.from(messageElements).map((element: Element) => {
+        const inviteElements = document.querySelectorAll('.invite-item, .conversation-item');
+        return Array.from(inviteElements).map((element: Element) => {
           const usernameEl = element.querySelector('.username, .creator-name');
-          const messageEl = element.querySelector('.message-text, .last-message');
+          const inviteEl = element.querySelector('.invite-text, .last-invite');
           const timestampEl = element.querySelector('.timestamp, .time');
 
           return {
             username: usernameEl?.textContent?.trim(),
-            message: messageEl?.textContent?.trim(),
+            invite: inviteEl?.textContent?.trim(),
             timestamp: timestampEl?.textContent?.trim(),
             isUnread: element.classList.contains('unread')
           };
         });
       });
 
-      return messages.filter(msg => msg.username && msg.message);
+      return messages.filter(msg => msg.username && msg.invite);
 
     } catch (error) {
       console.error('Failed to check for responses:', error);

@@ -186,8 +186,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Creators
-  async getCreators(filters?: any, limit = 25, offset = 0): Promise<Creator[]> {
+  async getCreators(filters?: any, limit = 25, offset = 0): Promise<{ creators: Creator[]; total: number }> {
     let query = db.select().from(creators);
+    let countQuery = db.select({ count: count() }).from(creators);
 
     if (filters) {
       const conditions = [];
@@ -202,13 +203,17 @@ export class DatabaseStorage implements IStorage {
 
       if (conditions.length > 0) {
         query = query.where(and(...conditions));
+        countQuery = countQuery.where(and(...conditions));
       }
     }
 
-    return await query
+    const [countResult] = await countQuery;
+    const total = countResult?.count ?? 0;
+    const creatorsList = await query
       .limit(limit)
       .offset(offset)
       .orderBy(desc(creators.followers));
+    return { creators: creatorsList, total };
   }
 
   async getCreator(id: number): Promise<Creator | undefined> {

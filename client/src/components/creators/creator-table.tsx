@@ -13,23 +13,28 @@ import {
 } from 'lucide-react';
 import { CreatorProfileModal } from './creator-profile-modal';
 
-export interface Creator {
-  id: string;
-  username: string;
+import type { Creator as CreatorType } from '@/types';
+
+// Table expects a normalized Creator type for display
+export interface UICreator extends Omit<CreatorType, 'engagementRate' | 'gmv' | 'followers' | 'displayName'> {
   followers: number;
   engagement: number;
-  category: string;
-  status: 'active' | 'pending' | 'inactive';
   gmv: number;
+  engagementRate: number;
+  status: 'active' | 'pending' | 'inactive';
   location?: string;
   joinedDate?: string;
   avatar?: string;
+  displayName?: string;
 }
 
 interface CreatorTableProps {
-  creators: Creator[];
-  onSendInvite?: (creatorId: string) => void;
-  onViewProfile?: (creatorId: string) => void;
+  creators: UICreator[];
+  onSendInvite?: (creatorId: number) => void;
+  onViewProfile?: (creatorId: number) => void;
+  onSelect?: (creatorId: number, selected: boolean) => void;
+  selectedCreators?: number[];
+  onSelectAll?: (selected: boolean) => void;
 }
 
 function formatNumber(num: number): string {
@@ -42,29 +47,55 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
-export function CreatorTable({ creators, onSendInvite, onViewProfile }: CreatorTableProps) {
-  const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+export function CreatorTable({ creators, onSendInvite, onViewProfile, onSelect, selectedCreators = [], onSelectAll }: CreatorTableProps) {
+  const [selectedCreator, setSelectedCreator] = useState<UICreator | null>(null);
 
-  const handleViewProfile = (creator: Creator) => {
+  const handleViewProfile = (creator: UICreator) => {
     setSelectedCreator(creator);
     onViewProfile?.(creator.id);
   };
 
-  const handleSendInvite = (creatorId: string) => {
+  const handleSendInvite = (creatorId: number) => {
     onSendInvite?.(creatorId);
-    // Show success toast or notification
   };
 
   const openTikTokProfile = (username: string) => {
     window.open(`https://www.tiktok.com/@${username}`, '_blank');
   };
 
+  // Bulk selection
+  const allSelected = creators.length > 0 && creators.every(c => selectedCreators.includes(c.id));
+
   return (
     <>
+      <div className="flex items-center mb-2">
+        {onSelectAll && (
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={e => onSelectAll(e.target.checked)}
+            aria-label="Select all creators"
+            className="mr-2 accent-blue-500"
+          />
+        )}
+        <span className="text-gray-400 text-sm">{creators.length} creators</span>
+      </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {creators.map((creator) => (
-          <Card key={creator.id} className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors">
+          <Card key={creator.id} className={`bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors ${selectedCreators.includes(creator.id) ? 'ring-2 ring-blue-500' : ''}`}>
             <CardContent className="p-6">
+              <div className="flex items-center mb-2">
+                {onSelect && (
+                  <input
+                    type="checkbox"
+                    checked={selectedCreators.includes(creator.id)}
+                    onChange={e => onSelect(creator.id, e.target.checked)}
+                    aria-label={`Select creator ${creator.username}`}
+                    className="mr-2 accent-blue-500"
+                  />
+                )}
+                <span className="flex-1" />
+              </div>
               {/* Creator Header */}
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
@@ -165,9 +196,15 @@ export function CreatorTable({ creators, onSendInvite, onViewProfile }: CreatorT
       {/* Creator Profile Modal */}
       {selectedCreator && (
         <CreatorProfileModal
-          creator={selectedCreator}
-          isOpen={!!selectedCreator}
-          onClose={() => setSelectedCreator(null)}
+          creator={{
+            ...selectedCreator,
+            category: selectedCreator.category ?? undefined,
+            lastUpdated: selectedCreator.lastUpdated ? new Date(selectedCreator.lastUpdated) : undefined,
+          }}
+          open={!!selectedCreator}
+          onOpenChange={(open) => {
+            if (!open) setSelectedCreator(null);
+          }}
         />
       )}
     </>

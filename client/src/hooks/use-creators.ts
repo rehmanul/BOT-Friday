@@ -4,14 +4,12 @@ import type { Creator, CreatorFilters } from '@/types';
 
 export function useCreators(filters?: CreatorFilters, limit = 25, offset = 0) {
   const queryParams = new URLSearchParams();
-  
   if (filters?.category) queryParams.append('category', filters.category);
   if (filters?.minFollowers) queryParams.append('minFollowers', filters.minFollowers.toString());
   if (filters?.maxFollowers) queryParams.append('maxFollowers', filters.maxFollowers.toString());
   if (filters?.minGMV) queryParams.append('minGMV', filters.minGMV.toString());
   if (filters?.maxGMV) queryParams.append('maxGMV', filters.maxGMV.toString());
   if (filters?.engagementRate) queryParams.append('engagementRate', filters.engagementRate);
-  
   queryParams.append('limit', limit.toString());
   queryParams.append('offset', offset.toString());
 
@@ -24,6 +22,7 @@ export function useCreators(filters?: CreatorFilters, limit = 25, offset = 0) {
       if (!response.ok) {
         throw new Error('Failed to fetch creators');
       }
+      // Now returns { creators, total }
       return response.json();
     },
   });

@@ -101,7 +101,7 @@ export function Sidebar({ sessionStatus }: SidebarProps) {
               Md Rehmanul Alam
             </span>
           </div>
-          <div className="text-xs text-gray-500">(Replit Devs.)</div>
+          {/* Credit removed as requested */}
         </div>
       </div>
     </div>

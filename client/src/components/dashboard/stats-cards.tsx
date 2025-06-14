@@ -13,28 +13,28 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
       title: 'Active Campaigns',
       value: stats.activeCampaigns,
       growth: '+15%',
-      isPositive: true,
+      isPositive: stats.activeCampaigns > 0,
       icon: '🎯'
     },
     {
       title: 'Creators Contacted',
-      value: stats.creatorsContacted.toLocaleString(),
+      value: stats.creatorsContacted?.toLocaleString?.() ?? '0',
       growth: '+23%',
-      isPositive: true,
+      isPositive: stats.creatorsContacted > 0,
       icon: '👥'
     },
     {
       title: 'Response Rate',
-      value: `${stats.responseRate.toFixed(1)}%`,
+      value: `${stats.responseRate?.toFixed?.(1) ?? '0.0'}%`,
       growth: '+5.2%',
-      isPositive: true,
+      isPositive: stats.responseRate > 0,
       icon: '📈'
     },
     {
       title: 'Total GMV',
-      value: `$${stats.totalGMV.toLocaleString()}`,
+      value: `$${stats.totalGMV?.toLocaleString?.() ?? '0'}`,
       growth: '+18.7%',
-      isPositive: true,
+      isPositive: stats.totalGMV > 0,
       icon: '💰'
     }
   ];

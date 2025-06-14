@@ -53,17 +53,16 @@ interface AIModelSelectorProps {
   selectedModel?: string;
   onModelChange?: (modelId: string) => void;
   onConfigureWebhook?: () => void;
+  models?: Array<{ id: string; name: string; provider: string; endpoint?: string; isConfigured?: boolean }>;
 }
 
 export function AIModelSelector({ 
   selectedModel, 
   onModelChange,
-  onConfigureWebhook 
+  onConfigureWebhook,
+  models = []
 }: AIModelSelectorProps) {
-  const [customModels, setCustomModels] = useState<AIModel[]>([]);
-
-  const allModels = [...DEFAULT_MODELS, ...customModels];
-  const currentModel = allModels.find(model => model.id === selectedModel);
+  const currentModel = models.find(model => model.id === selectedModel);
 
   return (
     <div className="flex items-center space-x-2">
@@ -72,7 +71,7 @@ export function AIModelSelector({
           <SelectValue placeholder="Select AI Model" />
         </SelectTrigger>
         <SelectContent className="bg-slate-700 border-slate-600">
-          {allModels.map((model) => (
+          {models.map((model) => (
             <SelectItem 
               key={model.id} 
               value={model.id || 'default'}
@@ -81,6 +80,9 @@ export function AIModelSelector({
               <div className="flex flex-col">
                 <span className="font-medium">{model.name}</span>
                 <span className="text-xs text-gray-400">{model.provider}</span>
+                {model.isConfigured === false && (
+                  <span className="text-xs text-red-500">Not Configured</span>
+                )}
               </div>
             </SelectItem>
           ))}
