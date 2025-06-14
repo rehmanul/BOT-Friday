@@ -39,8 +39,11 @@ app.use((req, res, next) => {
 
 (async () => {
   const puppeteerAutomation = new PuppeteerAutomation();
-  await puppeteerAutomation.initializeSession();
-
+  
+  // Initialize Puppeteer without blocking server startup
+  puppeteerAutomation.initializeSession().catch(error => {
+    console.log('Puppeteer initialization failed, automation features disabled:', error.message);
+  });
 
   await registerRoutes(app);
   const { createServer } = await import('http');
@@ -102,10 +105,21 @@ app.use((req, res, next) => {
   // Function to check and send session status
   async function checkAndSendSessionStatus(socket: any) {
     try {
-      const sessionData = await puppeteerAutomation.captureSessionData();
-      socket.emit('session_status', sessionData);
+      if (puppeteerAutomation.isReady()) {
+        const sessionData = await puppeteerAutomation.captureSessionData();
+        socket.emit('session_status', sessionData);
+      } else {
+        socket.emit('session_status', {
+          initialized: false,
+          message: 'Automation service not available'
+        });
+      }
     } catch (error) {
       console.error('Error checking session status:', error);
+      socket.emit('session_status', {
+        initialized: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   }
 

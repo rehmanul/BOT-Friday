@@ -20,6 +20,7 @@ export class PuppeteerAutomation {
   private browser: Browser | null = null;
   private page: Page | null = null;
   private sessionData: any = null;
+  private isInitialized: boolean = false;
 
   async initializeSession(): Promise<any> {
     try {
@@ -142,7 +143,13 @@ export class PuppeteerAutomation {
 
     } catch (error) {
       console.error('Failed to initialize Puppeteer session:', error);
-      throw new Error('Failed to initialize automation session');
+      console.log('Automation features will be disabled until Chrome is available');
+      return {
+        initialized: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date(),
+        message: 'Chrome browser not found. Automation features disabled.'
+      };
     }
   }
 
@@ -716,12 +723,31 @@ export class PuppeteerAutomation {
     });
   }
 
+  isReady(): boolean {
+    return this.isInitialized && this.browser !== null && this.page !== null;
+  }
+
+  async ensureInitialized(): Promise<boolean> {
+    if (!this.isReady()) {
+      try {
+        const result = await this.initializeSession();
+        this.isInitialized = result.initialized;
+        return this.isInitialized;
+      } catch (error) {
+        console.error('Failed to ensure initialization:', error);
+        return false;
+      }
+    }
+    return true;
+  }
+
   async cleanup(): Promise<void> {
     try {
       if (this.browser) {
         await this.browser.close();
         this.browser = null;
         this.page = null;
+        this.isInitialized = false;
       }
     } catch (error) {
       console.error('Cleanup error:', error);
