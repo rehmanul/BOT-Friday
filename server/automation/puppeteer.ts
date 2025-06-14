@@ -30,13 +30,26 @@ export class PuppeteerAutomation {
       // Generate random user agent for stealth
       const randomUA = getRandomUserAgent();
 
-      // Try to find system Chromium first
+      // Try to find Chrome executable - check Puppeteer cache first, then system
       let executablePath: string | undefined;
       try {
         const { execSync } = require('child_process');
-        executablePath = execSync('which chromium-browser || which chromium || which google-chrome', { encoding: 'utf8' }).trim();
+        // First try Puppeteer's cached Chrome
+        try {
+          executablePath = execSync('find /home/runner/.cache/puppeteer -name "chrome" -type f 2>/dev/null | head -1', { encoding: 'utf8' }).trim();
+          if (executablePath) {
+            console.log('Using Puppeteer cached Chrome:', executablePath);
+          }
+        } catch {
+          // Fall back to system Chrome
+          executablePath = execSync('which chromium-browser || which chromium || which google-chrome-stable || which google-chrome', { encoding: 'utf8' }).trim();
+          if (executablePath) {
+            console.log('Using system Chrome:', executablePath);
+          }
+        }
       } catch (error) {
-        console.log('System Chrome not found, falling back to Puppeteer default');
+        console.log('Chrome not found, using Puppeteer default');
+        executablePath = undefined;
       }
 
       this.browser = await puppeteer.launch({
