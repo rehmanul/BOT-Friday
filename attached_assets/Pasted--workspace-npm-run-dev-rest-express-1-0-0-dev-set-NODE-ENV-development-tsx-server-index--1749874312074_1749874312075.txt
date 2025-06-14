@@ -1,0 +1,36 @@
+~/workspace$ npm run dev
+
+> rest-express@1.0.0 dev
+> set NODE_ENV=development&& tsx server/index.ts
+
+Using SQLite for development
+Missing API keys: ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, PERPLEXITY_API_KEY. Some AI features will be unavailable.
+System Chrome not found, falling back to Puppeteer default
+Failed to initialize Puppeteer session: Error: Could not find Chrome (ver. 137.0.7151.55). This can occur if either
+ 1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+ 2. your cache path is incorrectly configured (which is: /home/runner/.cache/puppeteer).
+For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+    at ChromeLauncher.resolveExecutablePath (/home/runner/workspace/node_modules/puppeteer-core/src/node/BrowserLauncher.ts:476:17)
+    at ChromeLauncher.computeLaunchArguments (/home/runner/workspace/node_modules/puppeteer-core/src/node/ChromeLauncher.ts:128:16)
+    at ChromeLauncher.launch (/home/runner/workspace/node_modules/puppeteer-core/src/node/BrowserLauncher.ts:102:35)
+    at ChromeLauncher.launch (/home/runner/workspace/node_modules/puppeteer-core/src/node/ChromeLauncher.ts:55:18)
+    at PuppeteerNode.launch (/home/runner/workspace/node_modules/puppeteer-core/src/node/PuppeteerNode.ts:166:27)
+    at PuppeteerExtra.launch (/home/runner/workspace/node_modules/puppeteer-extra/src/index.ts:169:37)
+    at async PuppeteerAutomation.initializeSession (/home/runner/workspace/server/automation/puppeteer.ts:42:22)
+    at async <anonymous> (/home/runner/workspace/server/index.ts:42:3)
+/home/runner/workspace/server/automation/puppeteer.ts:132
+      throw new Error('Failed to initialize automation session');
+            ^
+
+
+Error: Failed to initialize automation session
+    at PuppeteerAutomation.initializeSession (/home/runner/workspace/server/automation/puppeteer.ts:132:13)
+    at async <anonymous> (/home/runner/workspace/server/index.ts:42:3)
+
+Node.js v20.18.1
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.4.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.4.2
+npm notice To update run: npm install -g npm@11.4.2
+npm notice
+~/workspace$ 
