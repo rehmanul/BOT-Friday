@@ -31,25 +31,30 @@ export class PuppeteerAutomation {
       // Generate random user agent for stealth
       const randomUA = getRandomUserAgent();
 
-      // Try to find Chrome executable - check Puppeteer cache first, then system
+      // Try to find Chrome executable - prioritize system Chrome for Replit
       let executablePath: string | undefined;
       try {
         const { execSync } = require('child_process');
-        // First try Puppeteer's cached Chrome
+        
+        // Try system Chrome first (better for Replit)
         try {
-          executablePath = execSync('find /home/runner/.cache/puppeteer -name "chrome" -type f 2>/dev/null | head -1', { encoding: 'utf8' }).trim();
-          if (executablePath) {
-            console.log('Using Puppeteer cached Chrome:', executablePath);
-          }
-        } catch {
-          // Fall back to system Chrome
           executablePath = execSync('which chromium-browser || which chromium || which google-chrome-stable || which google-chrome', { encoding: 'utf8' }).trim();
           if (executablePath) {
             console.log('Using system Chrome:', executablePath);
           }
+        } catch {
+          // Fall back to Puppeteer cached Chrome
+          try {
+            executablePath = execSync('find /home/runner/.cache/puppeteer -name "chrome" -type f 2>/dev/null | head -1', { encoding: 'utf8' }).trim();
+            if (executablePath) {
+              console.log('Using Puppeteer cached Chrome:', executablePath);
+            }
+          } catch {
+            console.log('No Chrome executable found');
+          }
         }
       } catch (error) {
-        console.log('Chrome not found, using Puppeteer default');
+        console.log('Chrome detection failed:', error);
         executablePath = undefined;
       }
 
@@ -78,10 +83,18 @@ export class PuppeteerAutomation {
           '--safebrowsing-disable-auto-update',
           '--disable-blink-features=AutomationControlled',
           '--single-process',
-          '--no-first-run',
           '--disable-background-timer-throttling',
           '--disable-renderer-backgrounding',
-          '--disable-backgrounding-occluded-windows'
+          '--disable-backgrounding-occluded-windows',
+          '--disable-ipc-flooding-protection',
+          '--disable-background-mode',
+          '--disable-component-extensions-with-background-pages',
+          '--disable-features=TranslateUI',
+          '--disable-features=BlinkGenPropertyTrees',
+          '--run-all-compositor-stages-before-draw',
+          '--disable-threaded-animation',
+          '--disable-threaded-scrolling',
+          '--disable-checker-imaging'
         ],
         defaultViewport: null
       });
@@ -130,6 +143,7 @@ export class PuppeteerAutomation {
         console.log('No active session found. User needs to login manually.');
       }
 
+      this.isInitialized = true;
       return {
         initialized: true,
         timestamp: new Date(),
@@ -144,6 +158,7 @@ export class PuppeteerAutomation {
     } catch (error) {
       console.error('Failed to initialize Puppeteer session:', error);
       console.log('Automation features will be disabled until Chrome is available');
+      this.isInitialized = false;
       return {
         initialized: false,
         error: error instanceof Error ? error.message : 'Unknown error',
