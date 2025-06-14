@@ -9,6 +9,13 @@
     pkgs.xorg.libXcomposite
     pkgs.xorg.libXdamage
     pkgs.xorg.libXrandr
+    pkgs.xorg.libxcb
+    pkgs.xorg.libX11
+    pkgs.xorg.libXext
+    pkgs.xorg.libXi
+    pkgs.xorg.libXtst
+    pkgs.xorg.libXcursor
+    pkgs.xorg.libXfixes
     pkgs.mesa
     pkgs.xorg.libXScrnSaver
     pkgs.alsa-lib
@@ -21,5 +28,8 @@
     pkgs.expat
     pkgs.dbus
     pkgs.nspr
+    pkgs.atk
+    pkgs.gdk-pixbuf
+    pkgs.libxkbcommon
   ];
 }
