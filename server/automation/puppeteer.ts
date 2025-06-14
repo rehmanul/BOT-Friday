@@ -30,8 +30,18 @@ export class PuppeteerAutomation {
       // Generate random user agent for stealth
       const randomUA = getRandomUserAgent();
 
+      // Try to find system Chromium first
+      let executablePath: string | undefined;
+      try {
+        const { execSync } = require('child_process');
+        executablePath = execSync('which chromium-browser || which chromium || which google-chrome', { encoding: 'utf8' }).trim();
+      } catch (error) {
+        console.log('System Chrome not found, falling back to Puppeteer default');
+      }
+
       this.browser = await puppeteer.launch({
-        headless: false, // Keep false for session capture
+        headless: true, // Changed to headless for Replit environment
+        executablePath, // Use system Chromium if found
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -52,7 +62,12 @@ export class PuppeteerAutomation {
           '--mute-audio',
           '--no-default-browser-check',
           '--safebrowsing-disable-auto-update',
-          '--disable-blink-features=AutomationControlled'
+          '--disable-blink-features=AutomationControlled',
+          '--single-process',
+          '--no-first-run',
+          '--disable-background-timer-throttling',
+          '--disable-renderer-backgrounding',
+          '--disable-backgrounding-occluded-windows'
         ],
         defaultViewport: null
       });
