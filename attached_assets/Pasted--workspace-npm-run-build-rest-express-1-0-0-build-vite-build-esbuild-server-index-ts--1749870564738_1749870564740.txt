@@ -1,0 +1,46 @@
+~/workspace$ npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v6.3.5 building for production...
+✓ 1751 modules transformed.
+../dist/public/index.html                   0.63 kB │ gzip:   0.39 kB
+../dist/public/assets/index-Ca5HlKjJ.css   70.66 kB │ gzip:  12.21 kB
+../dist/public/assets/index-Da4P3T1Q.js   472.45 kB │ gzip: 138.00 kB
+✓ built in 8.75s
+
+  dist/index.js  85.5kb
+
+⚡ Done in 9ms
+~/workspace$ npm start
+
+> rest-express@1.0.0 start
+> set NODE_ENV=production&& node dist/index.js
+
+Using SQLite for development
+Missing API keys: ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, PERPLEXITY_API_KEY. Some AI features will be unavailable.
+Failed to initialize Puppeteer session: Error: Failed to launch the browser process!
+/home/runner/.cache/puppeteer/chrome/linux-137.0.7151.55/chrome-linux64/chrome: error while loading shared libraries: libglib-2.0.so.0: cannot open shared object file: No such file or directory
+
+
+TROUBLESHOOTING: https://pptr.dev/troubleshooting
+
+    at Interface.onClose (/home/runner/workspace/node_modules/@puppeteer/browsers/lib/cjs/launch.js:325:24)
+    at Interface.emit (node:events:530:35)
+    at Interface.close (node:internal/readline/interface:527:10)
+    at Socket.onend (node:internal/readline/interface:253:10)
+    at Socket.emit (node:events:530:35)
+    at endReadableNT (node:internal/streams/readable:1698:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+file:///home/runner/workspace/dist/index.js:1795
+      throw new Error("Failed to initialize automation session");
+            ^
+
+Error: Failed to initialize automation session
+    at PuppeteerAutomation.initializeSession (file:///home/runner/workspace/dist/index.js:1795:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///home/runner/workspace/dist/index.js:2273:3
+
+Node.js v20.18.1
+~/workspace$ 
