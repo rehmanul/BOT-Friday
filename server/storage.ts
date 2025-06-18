@@ -368,18 +368,23 @@ export class DatabaseStorage implements IStorage {
   async getActiveBrowserSession(
     userId: number,
   ): Promise<BrowserSession | undefined> {
-    const [session] = await db
-      .select()
-      .from(browserSessions)
-      .where(
-        and(
-          eq(browserSessions.userId, userId),
-          eq(browserSessions.isActive, true),
-        ),
-      )
-      .orderBy(desc(browserSessions.lastActivity))
-      .limit(1);
-    return session || undefined;
+    try {
+      const [session] = await db
+        .select()
+        .from(browserSessions)
+        .where(
+          and(
+            eq(browserSessions.userId, userId),
+            eq(browserSessions.isActive, true),
+          ),
+        )
+        .orderBy(desc(browserSessions.lastActivity))
+        .limit(1);
+      return session || undefined;
+    } catch (error) {
+      console.error('Error fetching active browser session:', error);
+      return undefined;
+    }
   }
 
   async createBrowserSession(
@@ -507,31 +512,36 @@ export class DatabaseStorage implements IStorage {
     expiresAt: Date;
     refreshExpiresAt: Date;
   }): Promise<void> {
-    const tokenData = JSON.stringify({
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresAt: tokens.expiresAt.toISOString(),
-      refreshExpiresAt: tokens.refreshExpiresAt.toISOString()
-    });
+    try {
+      const tokenData = JSON.stringify({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: tokens.expiresAt.toISOString(),
+        refreshExpiresAt: tokens.refreshExpiresAt.toISOString()
+      });
 
-    // Update existing session or create new one
-    const existingSession = await this.getActiveBrowserSession(userId);
-    if (existingSession) {
-      await db.update(browserSessions)
-        .set({
+      // Update existing session or create new one
+      const existingSession = await this.getActiveBrowserSession(userId);
+      if (existingSession) {
+        await db.update(browserSessions)
+          .set({
+            sessionData: tokenData,
+            lastActivity: new Date(),
+            expiresAt: tokens.expiresAt
+          })
+          .where(eq(browserSessions.id, existingSession.id));
+      } else {
+        await db.insert(browserSessions).values({
+          userId: userId,
           sessionData: tokenData,
+          isActive: true,
           lastActivity: new Date(),
           expiresAt: tokens.expiresAt
-        })
-        .where(eq(browserSessions.userId, userId));
-    } else {
-      await db.insert(browserSessions).values({
-        userId,
-        sessionData: tokenData,
-        isActive: true,
-        lastActivity: new Date(),
-        expiresAt: tokens.expiresAt
-      });
+        });
+      }
+    } catch (error) {
+      console.error('Error storing TikTok tokens:', error);
+      throw error;
     }
   }
 
