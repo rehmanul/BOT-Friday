@@ -579,4 +579,5 @@ export async function generateAnalyticsOverview() {
   };
 }
 
-export { storage };
+// Create and export storage instance
+export const storage = new DatabaseStorage();
