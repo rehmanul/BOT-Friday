@@ -1,3 +1,82 @@
+
+import React, { useState, useEffect } from 'react';
+import { Header } from '@/components/layout/header';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { CreatorTable } from '@/components/creators/creator-table';
+import { CreatorProfileModal } from '@/components/creators/creator-profile-modal';
+import { TikTokConnect } from '@/components/auth/tiktok-connect';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  UserPlus, 
+  Search, 
+  Filter, 
+  Download, 
+  Upload,
+  Sparkles,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
+
+interface Creator {
+  id: number;
+  username: string;
+  displayName: string;
+  followers: number;
+  engagement: number;
+  category: string;
+  location?: string;
+  verified: boolean;
+  avatar: string;
+  gmv: number;
+  joinedDate?: string;
+}
+
+interface TikTokAuthStatus {
+  isAuthenticated: boolean;
+  profile?: {
+    username: string;
+    displayName: string;
+    avatar: string;
+    verified: boolean;
+    followers: number;
+  };
+}
+
+export default function Creators() {
+  const [creators, setCreators] = useState<Creator[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCreators, setSelectedCreators] = useState<number[]>([]);
+  const [showInvitationDialog, setShowInvitationDialog] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+  const [invitationMessage, setInvitationMessage] = useState('');
+  const [totalCreators, setTotalCreators] = useState(0);
+  const [discoveryQuery, setDiscoveryQuery] = useState('');
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [tiktokAuth, setTiktokAuth] = useState<TikTokAuthStatus>({ isAuthenticated: false });
+  const { toast } = useToast();
+
+  // Check TikTok authentication status
+  useEffect(() => {
+    const checkTikTokAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/tiktok/status');
+        const data = await response.json();
+        setTiktokAuth(data);
+      } catch (error) {
+        console.error('Failed to check TikTok auth status:', error);
+      }
+    };
+
+    checkTikTokAuth();
+  }, []);
+
 import { useState } from 'react';
 import { CreatorTable, UICreator } from '@/components/creators/creator-table';
 import { CreatorProfileModal } from '@/components/creators/creator-profile-modal';
@@ -134,7 +213,7 @@ export default function Creators() {
     if (!selectedCreator) return;
 
     try {
-      const response = await fetch('/api/campaigns/send-invitation-direct', {
+      const response = await fetch('/api/campaigns/send-invitation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +231,14 @@ export default function Creators() {
         toast.success('Invitation Sent', 'The invitation was sent to TikTok successfully.');
       } else {
         const errorData = await response.json();
-        toast.error('Send Failed', errorData.error || 'Failed to send invitation.');
+        
+        if (errorData.requiresAuth) {
+          toast.error('Authentication Required', 'Please connect your TikTok account first.');
+          // Redirect to TikTok auth
+          window.location.href = '/api/auth/tiktok/1';
+        } else {
+          toast.error('Send Failed', errorData.error || 'Failed to send invitation.');
+        }
       }
     } catch (error) {
       toast.error('Send Failed', error instanceof Error ? error.message : 'Failed to send invitation.');
@@ -168,6 +254,13 @@ export default function Creators() {
       />
 
       <main className="flex-1 overflow-auto p-6 space-y-6">
+        {/* TikTok Connection Status */}
+        <TikTokConnect 
+          userId={1}
+          isConnected={tiktokAuth.isAuthenticated}
+          profile={tiktokAuth.profile}
+        />
+
         {/* Discovery Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="bg-card-bg border-slate-700">

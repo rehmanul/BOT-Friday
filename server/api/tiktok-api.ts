@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 const TIKTOK_APP_ID = process.env.TIKTOK_APP_ID || '7512649815700963329';
 const TIKTOK_APP_SECRET = process.env.TIKTOK_APP_SECRET || 'e448a875d92832486230db13be28db0444035303';
-const TIKTOK_REDIRECT_URI = process.env.TIKTOK_REDIRECT_URI || 'https://affiliate.tiktok.com/connection/creator?shop_region=GB&is_new_user=0&is_new_connect=0';
+const TIKTOK_REDIRECT_URI = process.env.TIKTOK_REDIRECT_URI || 'https://your-repl-name.your-username.repl.co/api/auth/tiktok/callback';
 
 export class TikTokAPI {
   private baseURL = 'https://business-api.tiktok.com/open_api/v1.3';

@@ -569,4 +569,14 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export async function generateAnalyticsOverview() {
+  return {
+    totalCampaigns: 0,
+    totalResponses: 0,
+    totalConversions: 0,
+    conversionRate: 0,
+    avgGMVPerCreator: 0
+  };
+}
+
+export { storage };

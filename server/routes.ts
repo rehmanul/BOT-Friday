@@ -12,6 +12,7 @@ import { rateLimiter } from "./automation/rate-limiter";
 import { automationTester } from "./utils/test-helpers";
 import { logger } from "./utils/logger";
 import { z } from "zod";
+import { tiktokService } from "./services/tiktok-service";
 
 let broadcastFunction: ((userId: number, message: any) => void) | null = null;
 
@@ -243,6 +244,15 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Creator not found" });
       }
 
+      // Check if TikTok is authenticated
+      const isAuthenticated = await tiktokService.isAuthenticated();
+      if (!isAuthenticated) {
+        return res.status(401).json({ 
+          error: "TikTok authentication required", 
+          requiresAuth: true 
+        });
+      }
+
       // Create invitation record
       const invitation = await storage.createCampaignInvitation({
         campaignId: 1, // Default campaign for now
@@ -252,14 +262,33 @@ export async function registerRoutes(app: Express) {
         sentAt: null
       });
 
-      // For now, just mark as sent without actual TikTok integration
-      // In production, you'd integrate with TikTok API or Puppeteer here
-      await storage.updateCampaignInvitation(invitation.id, {
-        status: "sent",
-        sentAt: new Date()
-      });
+      // Actually send the invitation via TikTok API
+      const sendResult = await tiktokService.sendMessage(1, creator.username, message);
+      
+      if (sendResult) {
+        await storage.updateCampaignInvitation(invitation.id, {
+          status: "sent",
+          sentAt: new Date()
+        });
 
-      res.json({ success: true, invitationId: invitation.id });
+        // Log successful send
+        await storage.createActivityLog({
+          userId: 1,
+          campaignId: 1,
+          type: "invitation_sent",
+          message: `Invitation sent to @${creator.username}`,
+          timestamp: new Date()
+        });
+
+        res.json({ success: true, invitationId: invitation.id });
+      } else {
+        await storage.updateCampaignInvitation(invitation.id, {
+          status: "failed",
+          sentAt: new Date()
+        });
+
+        res.status(500).json({ error: "Failed to send invitation via TikTok API" });
+      }
     } catch (error) {
       console.error("Send invitation error:", error);
       res.status(500).json({ error: "Failed to send invitation" });
@@ -391,11 +420,84 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // TikTok OAuth routes
+  app.get("/api/auth/tiktok/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const authUrl = tiktokService.getAuthorizationURL(userId);
+      res.redirect(authUrl);
+    } catch (error) {
+      console.error("TikTok auth redirect error:", error);
+      res.status(500).json({ error: "Failed to redirect to TikTok auth" });
+    }
+  });
+
+  app.get("/api/auth/tiktok/callback", async (req, res) => {
+    try {
+      const { code, state } = req.query as { code: string; state: string };
+      
+      if (!code) {
+        return res.status(400).json({ error: "Authorization code missing" });
+      }
+
+      const result = await tiktokService.handleAuthCallback(code, state);
+      
+      if (result.success) {
+        res.redirect("/?auth=success");
+      } else {
+        res.redirect(`/?auth=error&message=${encodeURIComponent(result.error || "Authentication failed")}`);
+      }
+    } catch (error) {
+      console.error("TikTok auth callback error:", error);
+      res.redirect("/?auth=error&message=Authentication%20failed");
+    }
+  });
+
+  app.get("/api/auth/tiktok/status", async (req, res) => {
+    try {
+      const isAuthenticated = await tiktokService.isAuthenticated();
+      const accountInfo = isAuthenticated ? await tiktokService.getAccountInfo() : null;
+      
+      res.json({
+        isAuthenticated,
+        profile: accountInfo ? {
+          username: accountInfo.username || "TikTok User",
+          displayName: accountInfo.display_name || "TikTok User",
+          avatar: accountInfo.avatar_url || "https://via.placeholder.com/40",
+          verified: accountInfo.verified || false,
+          followers: accountInfo.follower_count || 0
+        } : null
+      });
+    } catch (error) {
+      console.error("TikTok auth status error:", error);
+      res.json({ isAuthenticated: false, profile: null });
+    }
+  });
+
+  app.post("/api/auth/tiktok/disconnect", async (req, res) => {
+    try {
+      await tiktokService.clearAuth();
+      res.json({ success: true, message: "TikTok account disconnected" });
+    } catch (error) {
+      console.error("TikTok disconnect error:", error);
+      res.status(500).json({ error: "Failed to disconnect TikTok account" });
+    }
+  });
+
   // TikTok automation status
-  app.get("/api/automation/status", (req, res) => {
-    res.json({
-      initialized: false,
-      message: "Automation service not configured"
-    });
+  app.get("/api/automation/status", async (req, res) => {
+    try {
+      const isAuthenticated = await tiktokService.isAuthenticated();
+      res.json({
+        initialized: isAuthenticated,
+        message: isAuthenticated ? "TikTok API connected and ready" : "TikTok authentication required"
+      });
+    } catch (error) {
+      console.error("Automation status error:", error);
+      res.json({
+        initialized: false,
+        message: "Automation service not configured"
+      });
+    }
   });
 }
