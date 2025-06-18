@@ -1,271 +1,219 @@
-
-import crypto from 'crypto';
 import fetch from 'node-fetch';
 
-export interface TikTokAPIConfig {
-  appId: string;
-  appSecret: string;
-  accessToken?: string;
-  refreshToken?: string;
-}
-
-export interface TikTokUser {
-  open_id: string;
-  union_id: string;
-  avatar_url: string;
-  avatar_url_100: string;
-  avatar_large_url: string;
-  display_name: string;
-  bio_description: string;
-  profile_deep_link: string;
-  is_verified: boolean;
-  follower_count: number;
-  following_count: number;
-  likes_count: number;
-  video_count: number;
-}
-
-export interface TikTokVideo {
-  id: string;
-  title: string;
-  video_description: string;
-  duration: number;
-  height: number;
-  width: number;
-  embed_html: string;
-  embed_link: string;
-  like_count: number;
-  comment_count: number;
-  share_count: number;
-  view_count: number;
-}
+const TIKTOK_APP_ID = process.env.TIKTOK_APP_ID || '7512649815700963329';
+const TIKTOK_APP_SECRET = process.env.TIKTOK_APP_SECRET || 'e448a875d92832486230db13be28db0444035303';
+const TIKTOK_REDIRECT_URI = process.env.TIKTOK_REDIRECT_URI || 'https://affiliate.tiktok.com/connection/creator?shop_region=GB&is_new_user=0&is_new_connect=0';
 
 export class TikTokAPI {
-  private config: TikTokAPIConfig;
-  private baseURL = 'https://open.tiktokapis.com/v2';
-  private businessURL = 'https://business-api.tiktok.com/open_api/v1.3';
+  private baseURL = 'https://business-api.tiktok.com/open_api/v1.3';
+  private authURL = 'https://business-api.tiktok.com/portal/auth';
+  private accessToken: string | null = null;
 
-  constructor(config: TikTokAPIConfig) {
-    this.config = config;
-  }
-
-  // Generate OAuth URL for user authorization
-  generateAuthURL(redirectUri: string, state?: string): string {
+  // Generate authorization URL for TikTok Business API
+  getAuthorizationURL(state?: string): string {
     const params = new URLSearchParams({
-      client_key: this.config.appId,
-      scope: 'user.info.basic,video.list,video.upload',
-      response_type: 'code',
-      redirect_uri: redirectUri,
-      state: state || crypto.randomBytes(16).toString('hex')
+      app_id: TIKTOK_APP_ID,
+      redirect_uri: TIKTOK_REDIRECT_URI,
+      state: state || 'auth_state'
     });
 
-    return `https://www.tiktok.com/v2/auth/authorize?${params.toString()}`;
+    return `${this.authURL}?${params.toString()}`;
   }
 
   // Exchange authorization code for access token
-  async getAccessToken(code: string, redirectUri: string): Promise<{
-    access_token: string;
-    expires_in: number;
-    refresh_token: string;
-    refresh_expires_in: number;
-    scope: string;
-    token_type: string;
-  }> {
-    const response = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cache-Control': 'no-cache'
-      },
-      body: new URLSearchParams({
-        client_key: this.config.appId,
-        client_secret: this.config.appSecret,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get access token: ${response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  // Get user info
-  async getUserInfo(accessToken: string): Promise<TikTokUser> {
-    const response = await fetch(`${this.baseURL}/user/info/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        fields: [
-          'open_id',
-          'union_id',
-          'avatar_url',
-          'avatar_url_100',
-          'avatar_large_url',
-          'display_name',
-          'bio_description',
-          'profile_deep_link',
-          'is_verified',
-          'follower_count',
-          'following_count',
-          'likes_count',
-          'video_count'
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get user info: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.data.user;
-  }
-
-  // Get user videos
-  async getUserVideos(accessToken: string, cursor?: string, maxCount: number = 20): Promise<{
-    videos: TikTokVideo[];
-    cursor: string;
-    has_more: boolean;
-  }> {
-    const body: any = {
-      max_count: maxCount,
-      fields: [
-        'id',
-        'title',
-        'video_description',
-        'duration',
-        'height',
-        'width',
-        'embed_html',
-        'embed_link',
-        'like_count',
-        'comment_count',
-        'share_count',
-        'view_count'
-      ]
-    };
-
-    if (cursor) {
-      body.cursor = cursor;
-    }
-
-    const response = await fetch(`${this.baseURL}/video/list/`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get user videos: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return {
-      videos: data.data.videos,
-      cursor: data.data.cursor,
-      has_more: data.data.has_more
-    };
-  }
-
-  // Send direct message (requires Business API access)
-  async sendMessage(recipientId: string, message: string, accessToken: string): Promise<boolean> {
+  async exchangeCodeForToken(authCode: string): Promise<{ access_token: string; expires_in: number }> {
     try {
-      // Note: This is a placeholder - TikTok's messaging API has specific requirements
-      // and may require additional permissions and setup
-      const response = await fetch(`${this.businessURL}/message/send/`, {
+      const response = await fetch('https://business-api.tiktok.com/open_api/v1.3/oauth2/access_token/', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          recipient_id: recipientId,
-          message_type: 'text',
-          content: {
-            text: message
-          }
+          app_id: TIKTOK_APP_ID,
+          secret: TIKTOK_APP_SECRET,
+          auth_code: authCode,
+          grant_type: 'authorization_code'
         })
       });
 
-      return response.ok;
+      const data = await response.json() as any;
+
+      if (data.code === 0) {
+        this.accessToken = data.data.access_token;
+        return {
+          access_token: data.data.access_token,
+          expires_in: data.data.access_token_expire_time
+        };
+      } else {
+        throw new Error(`TikTok API Error: ${data.message}`);
+      }
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('Failed to exchange code for token:', error);
+      throw error;
+    }
+  }
+
+  // Set access token for API calls
+  setAccessToken(token: string): void {
+    this.accessToken = token;
+  }
+
+  // Get advertiser info
+  async getAdvertiserInfo(): Promise<any> {
+    return this.makeAPICall('/advertiser/info/');
+  }
+
+  // Get account balance
+  async getAccountBalance(advertiserId: string): Promise<any> {
+    return this.makeAPICall('/advertiser/balance/get/', {
+      advertiser_id: advertiserId
+    });
+  }
+
+  // Create a campaign
+  async createCampaign(advertiserId: string, campaignData: any): Promise<any> {
+    return this.makeAPICall('/campaign/create/', {
+      advertiser_id: advertiserId,
+      ...campaignData
+    });
+  }
+
+  // Get campaigns
+  async getCampaigns(advertiserId: string, page: number = 1, pageSize: number = 10): Promise<any> {
+    return this.makeAPICall('/campaign/get/', {
+      advertiser_id: advertiserId,
+      page,
+      page_size: pageSize
+    });
+  }
+
+  // Send message to creator (via TikTok Creator Marketplace API)
+  async sendCreatorMessage(creatorId: string, message: string): Promise<boolean> {
+    try {
+      // Note: This is a placeholder for the actual TikTok Creator Marketplace API
+      // The exact endpoint may vary based on TikTok's current API structure
+      const response = await this.makeAPICall('/tcm/message/send/', {
+        creator_id: creatorId,
+        message: message,
+        message_type: 'invitation'
+      });
+
+      return response.code === 0;
+    } catch (error) {
+      console.error('Failed to send creator message:', error);
       return false;
     }
   }
 
-  // Search creators (Business API)
-  async searchCreators(query: string, accessToken: string, filters?: {
-    follower_min?: number;
-    follower_max?: number;
-    engagement_rate_min?: number;
-    country?: string;
-  }): Promise<TikTokUser[]> {
+  // Get creator insights
+  async getCreatorInsights(creatorId: string): Promise<any> {
+    return this.makeAPICall('/tcm/creator/insights/', {
+      creator_id: creatorId
+    });
+  }
+
+  // Search creators
+  async searchCreators(filters: {
+    category?: string;
+    minFollowers?: number;
+    maxFollowers?: number;
+    location?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<any> {
+    return this.makeAPICall('/tcm/creator/search/', {
+      ...filters,
+      page: filters.page || 1,
+      page_size: filters.pageSize || 20
+    });
+  }
+
+  // Get creator performance metrics
+  async getCreatorMetrics(creatorId: string, dateRange: { start: string; end: string }): Promise<any> {
+    return this.makeAPICall('/tcm/creator/metrics/', {
+      creator_id: creatorId,
+      start_date: dateRange.start,
+      end_date: dateRange.end
+    });
+  }
+
+  // Private method to make API calls
+  private async makeAPICall(endpoint: string, data?: any): Promise<any> {
+    if (!this.accessToken) {
+      throw new Error('Access token not set. Please authenticate first.');
+    }
+
     try {
-      const body: any = {
-        query,
-        limit: 50
-      };
-
-      if (filters) {
-        Object.assign(body, filters);
-      }
-
-      const response = await fetch(`${this.businessURL}/creator/search/`, {
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Access-Token': this.accessToken
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(data || {})
       });
 
+      const result = await response.json() as any;
+
       if (!response.ok) {
-        throw new Error(`Failed to search creators: ${response.statusText}`);
+        throw new Error(`TikTok API Error: ${result.message || 'Unknown error'}`);
       }
 
-      const data = await response.json();
-      return data.data.creators || [];
+      return result;
     } catch (error) {
-      console.error('Failed to search creators:', error);
-      return [];
+      console.error('TikTok API call failed:', error);
+      throw error;
     }
   }
 
   // Refresh access token
-  async refreshAccessToken(refreshToken: string): Promise<{
-    access_token: string;
-    expires_in: number;
-    refresh_token: string;
-    refresh_expires_in: number;
-  }> {
-    const response = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        client_key: this.config.appId,
-        client_secret: this.config.appSecret,
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken
-      })
-    });
+  async refreshAccessToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
+    try {
+      const response = await fetch('https://business-api.tiktok.com/open_api/v1.3/oauth2/refresh_token/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          app_id: TIKTOK_APP_ID,
+          secret: TIKTOK_APP_SECRET,
+          refresh_token: refreshToken,
+          grant_type: 'refresh_token'
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to refresh token: ${response.statusText}`);
+      const data = await response.json() as any;
+
+      if (data.code === 0) {
+        this.accessToken = data.data.access_token;
+        return {
+          access_token: data.data.access_token,
+          expires_in: data.data.access_token_expire_time
+        };
+      } else {
+        throw new Error(`TikTok API Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Failed to refresh access token:', error);
+      throw error;
     }
+  }
 
-    return await response.json();
+  // Get account information
+  async getAccountInfo(): Promise<any> {
+    return this.makeAPICall('/oauth2/advertiser/get/');
+  }
+
+  // Validate access token
+  async validateToken(): Promise<boolean> {
+    try {
+      await this.getAccountInfo();
+      return true;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      return false;
+    }
   }
 }
+
+export const tiktokAPI = new TikTokAPI();

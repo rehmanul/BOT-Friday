@@ -36,7 +36,7 @@ export class PuppeteerAutomation {
       // Try to find Chrome executable - prioritize system Chrome for Replit
       let executablePath: string | undefined;
       try {
-        const { execSync } = require('child_process');
+        const { execSync } = await import('child_process');
 
         // Try system Chrome first (better for Replit)
         try {
