@@ -369,13 +369,18 @@ export class DatabaseStorage implements IStorage {
     userId: number,
   ): Promise<BrowserSession | undefined> {
     try {
+      // Ensure userId is a valid number
+      if (!userId || isNaN(userId)) {
+        return undefined;
+      }
+
       const [session] = await db
         .select()
         .from(browserSessions)
         .where(
           and(
-            eq(browserSessions.userId, userId),
-            eq(browserSessions.isActive, true),
+            eq(browserSessions.userId, Number(userId)),
+            eq(browserSessions.isActive, 1), // Use 1 instead of true for SQLite
           ),
         )
         .orderBy(desc(browserSessions.lastActivity))

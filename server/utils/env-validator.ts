@@ -12,8 +12,6 @@ interface EnvironmentConfig {
 
 const envConfig: EnvironmentConfig = {
   required: [
-    'GEMINI_API_KEY',
-    'PERPLEXITY_API_KEY',
     'TIKTOK_APP_ID',
     'TIKTOK_APP_SECRET'
   ],
@@ -24,7 +22,9 @@ const envConfig: EnvironmentConfig = {
     'TIKTOK_DAILY_LIMIT': '200',
     'TIKTOK_WEEKLY_LIMIT': '1000',
     'MIN_REQUEST_DELAY_MS': '120000',
-    'API_KEY': ''
+    'API_KEY': '',
+    'GEMINI_API_KEY': '',
+    'PERPLEXITY_API_KEY': ''
   },
   sensitive: [
     'GEMINI_API_KEY',
