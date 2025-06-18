@@ -18,7 +18,8 @@ localPort = 5000
 externalPort = 80
 
 [deployment]
-run = ["sh", "-c", "npm run dev"]
+run = ["sh", "-c", "npm start"]
+build = ["sh", "-c", "npm run build"]
 
 [nix]
 channel = "stable-24_05"
