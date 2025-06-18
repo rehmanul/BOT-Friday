@@ -131,4 +131,33 @@ app.use((req, res, next) => {
   server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });
+
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    try {
+      await puppeteerAutomation.cleanup();
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
+
+  process.on('SIGINT', async () => {
+    console.log('SIGINT received, shutting down gracefully');
+    try {
+      await puppeteerAutomation.cleanup();
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    } catch (error) {
+      console.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
 })();

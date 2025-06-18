@@ -386,6 +386,21 @@ export class PuppeteerAutomation {
     }
   }
 
+  async cleanup(): Promise<void> {
+    try {
+      if (this.page) {
+        await this.page.close();
+        this.page = null;
+      }
+      if (this.browser) {
+        await this.browser.close();
+        this.browser = null;
+      }
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
+  }
+
   private async captureLocalStorage(): Promise<Record<string, string>> {
     if (!this.page) return {};
 
