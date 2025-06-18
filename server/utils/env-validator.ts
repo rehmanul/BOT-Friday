@@ -1,4 +1,3 @@
-
 import { logger } from './logger';
 
 interface EnvironmentConfig {
@@ -55,6 +54,20 @@ export function validateEnvironment(): boolean {
     }
   }
 
+    // Production-specific validations
+    if (process.env.NODE_ENV === 'production') {
+      // Ensure secure configuration
+      if (!process.env.API_KEY || process.env.API_KEY === 'your-secure-api-key-here') {
+        logger.error('API_KEY must be set to a secure value in production', 'env-validator');
+        return false;
+      }
+  
+      // Validate TikTok redirect URI is production URL
+      if (process.env.TIKTOK_REDIRECT_URI && process.env.TIKTOK_REDIRECT_URI.includes('repl.co')) {
+        logger.warn('TIKTOK_REDIRECT_URI should use your custom domain in production', 'env-validator');
+      }
+    }
+
   // Log results
   if (missingRequired.length > 0) {
     logger.error(
@@ -64,6 +77,7 @@ export function validateEnvironment(): boolean {
       undefined,
       { missingVariables: missingRequired }
     );
+    isValid = false;
   }
 
   if (loadedOptional.length > 0) {

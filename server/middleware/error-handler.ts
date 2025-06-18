@@ -1,4 +1,3 @@
-
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger';
 
@@ -16,51 +15,43 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = (
-  error: Error | AppError,
+export function errorHandler(
+  err: AppError | Error,
   req: Request,
   res: Response,
   next: NextFunction
-) => {
-  let statusCode = 500;
-  let message = 'Internal Server Error';
-  let module = 'unknown';
+): void {
+  const error = err instanceof AppError ? err : new AppError(err.message, 500, 'server');
 
-  if (error instanceof AppError) {
-    statusCode = error.statusCode;
-    message = error.message;
-    module = error.module || 'unknown';
-  }
-
-  // Log the error
+  // Log error with context
   logger.error(
-    `${req.method} ${req.path} - ${message}`,
-    module,
+    `${error.message}${error.code ? ` (${error.code})` : ''}`,
+    error.source || 'error-handler',
     undefined,
-    error,
-    {
+    { 
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
       url: req.url,
       method: req.method,
-      headers: req.headers,
-      body: req.body,
-      query: req.query,
-      params: req.params
+      userAgent: req.headers['user-agent'],
+      ip: req.ip || req.connection.remoteAddress
     }
   );
 
-  // Don't expose stack traces in production
-  const response: any = {
-    success: false,
-    message,
-    statusCode
-  };
+  // Don't expose internal error details in production
+  const message = process.env.NODE_ENV === 'production' && error.statusCode >= 500 
+    ? 'Internal server error' 
+    : error.message;
 
-  if (process.env.NODE_ENV === 'development') {
-    response.stack = error.stack;
-  }
-
-  res.status(statusCode).json(response);
-};
+  res.status(error.statusCode).json({
+    error: {
+      message,
+      ...(process.env.NODE_ENV === 'development' && { 
+        stack: error.stack,
+        details: error 
+      })
+    }
+  });
+}
 
 export const asyncHandler = (fn: Function) => {
   return (req: Request, res: Response, next: NextFunction) => {

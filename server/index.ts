@@ -27,6 +27,9 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:;");
+  res.setHeader('X-Powered-By', ''); // Remove server info
   next();
 });
 
@@ -44,14 +47,16 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
+    if (path.startsWith("/api") || path.startsWith("/health")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      
+      // Only log response body for errors in production
+      if (capturedJsonResponse && (res.statusCode >= 400 || process.env.NODE_ENV !== 'production')) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      if (logLine.length > 120) {
+        logLine = logLine.slice(0, 119) + "…";
       }
 
       // Log based on status code
@@ -59,7 +64,7 @@ app.use((req, res, next) => {
         logger.error(logLine, 'http');
       } else if (res.statusCode >= 400) {
         logger.warn(logLine, 'http');
-      } else {
+      } else if (res.statusCode < 300) {
         logger.info(logLine, 'http');
       }
     }

@@ -1,4 +1,3 @@
-
 import fs from 'fs';
 import path from 'path';
 
@@ -70,7 +69,7 @@ class Logger {
     // File output
     const today = new Date().toISOString().split('T')[0];
     this.writeToFile(`app-${today}.log`, entry);
-    
+
     if (level === LogLevel.ERROR) {
       this.writeToFile(`errors-${today}.log`, entry);
     }
@@ -89,6 +88,7 @@ class Logger {
   }
 
   debug(message: string, module?: string, userId?: number, metadata?: any) {
+    if (LogLevel.DEBUG > this.logLevel && process.env.NODE_ENV === 'production') return;
     this.log(LogLevel.DEBUG, 'DEBUG', message, module, userId, undefined, metadata);
   }
 }
