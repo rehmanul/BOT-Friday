@@ -5,6 +5,13 @@ import { insertCampaignSchema, insertCampaignInvitationSchema } from "../shared/
 import { aiModelManager } from "./ai/ai-model-manager";
 import { aiService } from "./automation/ai-service";
 import { generateAnalyticsOverview } from "./storage";
+import { asyncHandler, AppError } from "./middleware/error-handler";
+import { authenticateUser, AuthenticatedRequest } from "./middleware/auth";
+import { validateBody, validateParams, validateQuery } from "./middleware/validation";
+import { rateLimiter } from "./automation/rate-limiter";
+import { automationTester } from "./utils/test-helpers";
+import { logger } from "./utils/logger";
+import { z } from "zod";
 
 let broadcastFunction: ((userId: number, message: any) => void) | null = null;
 
@@ -12,14 +19,47 @@ export function setBroadcastFunction(fn: (userId: number, message: any) => void)
   broadcastFunction = fn;
 }
 
+// Validation schemas
+const userIdParamSchema = z.object({
+  userId: z.string().regex(/^\d+$/).transform(Number)
+});
+
+const campaignIdParamSchema = z.object({
+  id: z.string().regex(/^\d+$/).transform(Number)
+});
+
+const searchQuerySchema = z.object({
+  q: z.string().min(1).max(100)
+});
+
+const creatorDiscoverySchema = z.object({
+  criteria: z.string().min(1).max(500),
+  count: z.number().min(1).max(50).optional().default(10)
+});
+
+const paginationSchema = z.object({
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+  offset: z.string().regex(/^\d+$/).transform(Number).optional()
+});
+
 export async function registerRoutes(app: Express) {
-  // Health check endpoint
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
+  // Testing endpoint (development only)
+  if (process.env.NODE_ENV === 'development') {
+    app.get("/api/test/automation", asyncHandler(async (req, res) => {
+      logger.info('Running automation tests', 'test');
+      const results = await automationTester.runAllTests();
+      res.json({ results });
+    }));
+  }
+
+  // Rate limiter status endpoint
+  app.get("/api/rate-limiter/metrics", asyncHandler(async (req, res) => {
+    const metrics = rateLimiter.getMetrics();
+    res.json(metrics);
+  }));
 
   // Session profile endpoint
-  app.get("/api/session/profile", (req, res) => {
+  app.get("/api/session/profile", asyncHandler(async (req, res) => {
     // Return mock profile data for now
     res.json({
       profile: {
@@ -28,26 +68,22 @@ export async function registerRoutes(app: Express) {
         avatar: "https://via.placeholder.com/40"
       }
     });
-  });
+  }));
 
   // Session endpoint with userId
-  app.get("/api/session/:userId", async (req, res) => {
-    try {
-      const userIdParam = req.params.userId;
-      if (!userIdParam || isNaN(parseInt(userIdParam))) {
-        return res.status(400).json({ error: "Invalid userId" });
-      }
-      const userId = parseInt(userIdParam);
+  app.get("/api/session/:userId", 
+    validateParams(userIdParamSchema),
+    asyncHandler(async (req: AuthenticatedRequest, res) => {
+      const { userId } = req.params;
+      logger.debug(`Fetching session for user ${userId}`, 'session', userId);
+      
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        throw new AppError("User not found", 404, 'session');
       }
       res.json({ user });
-    } catch (error) {
-      console.error("Get session error:", error);
-      res.status(500).json({ error: "Failed to fetch session" });
-    }
-  });
+    })
+  );
 
   // Analytics endpoint
   app.get("/api/analytics", (req, res) => {
@@ -80,43 +116,43 @@ export async function registerRoutes(app: Express) {
   });
 
   // Creators search endpoint
-  app.get("/api/creators/search", async (req, res) => {
-    try {
+  app.get("/api/creators/search", 
+    validateQuery(searchQuerySchema),
+    asyncHandler(async (req, res) => {
       const { q } = req.query;
-      if (!q) {
-        return res.status(400).json({ error: "Query parameter required" });
-      }
+      logger.debug(`Searching creators with query: ${q}`, 'creators');
+      
       const creators = await storage.searchCreators(q as string);
       res.json(creators);
-    } catch (error) {
-      console.error("Search creators error:", error);
-      res.status(500).json({ error: "Failed to search creators" });
-    }
-  });
+    })
+  );
 
   // Creator discovery endpoint
-  app.post("/api/creators/discover", async (req, res) => {
-    try {
-      const { criteria, count = 10 } = req.body;
+  app.post("/api/creators/discover", 
+    validateBody(creatorDiscoverySchema),
+    asyncHandler(async (req, res) => {
+      const { criteria, count } = req.body;
+      logger.info(`Discovering creators with criteria: ${criteria}`, 'creator-discovery');
+      
       const discoveredCreators = await aiService.discoverCreators(criteria, count);
       const savedCreators = [];
+      
       for (const creatorData of discoveredCreators) {
         try {
           const existing = await storage.getCreatorByUsername(creatorData.username);
           if (!existing) {
             const creator = await storage.createCreator(creatorData);
             savedCreators.push(creator);
+            logger.debug(`Saved new creator: ${creator.username}`, 'creator-discovery');
           }
         } catch (error) {
-          console.error("Error saving discovered creator:", error);
+          logger.warn(`Error saving discovered creator: ${creatorData.username}`, 'creator-discovery', undefined, error);
         }
       }
+      
       res.json(savedCreators);
-    } catch (error) {
-      console.error("Creator discovery error:", error);
-      res.status(500).json({ error: "Failed to discover creators" });
-    }
-  });
+    })
+  );
 
   // Campaigns endpoint
   app.get("/api/campaigns", (req, res) => {

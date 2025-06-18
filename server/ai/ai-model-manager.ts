@@ -212,3 +212,6 @@ Make the message more personalized and compelling while maintaining professional
     return data.candidates[0].content.parts[0].text;
   }
 }
+
+// Export a singleton instance
+export const aiModelManager = new AIModelManager();

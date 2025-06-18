@@ -1,12 +1,36 @@
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes, setBroadcastFunction } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { PuppeteerAutomation } from "./automation/puppeteer";
+import { errorHandler, AppError } from "./middleware/error-handler";
+import { logger } from "./utils/logger";
+import { validateEnvironment, getEnvironmentInfo } from "./utils/env-validator";
+import { healthCheckHandler } from "./middleware/health-check";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
+// Validate environment variables on startup
+if (!validateEnvironment()) {
+  logger.error('Environment validation failed, server will not start', 'server');
+  process.exit(1);
+}
+
+logger.info('Server starting up', 'server', undefined, getEnvironmentInfo());
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -30,7 +54,14 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      // Log based on status code
+      if (res.statusCode >= 500) {
+        logger.error(logLine, 'http');
+      } else if (res.statusCode >= 400) {
+        logger.warn(logLine, 'http');
+      } else {
+        logger.info(logLine, 'http');
+      }
     }
   });
 
@@ -42,25 +73,28 @@ app.use((req, res, next) => {
   
   // Initialize Puppeteer without blocking server startup
   puppeteerAutomation.initializeSession().catch(error => {
-    console.log('Puppeteer initialization failed, automation features disabled:', error.message);
+    logger.warn('Puppeteer initialization failed, automation features disabled', 'puppeteer', undefined, error);
   });
+
+  // Health check endpoint (before other routes)
+  app.get("/health", healthCheckHandler);
+  app.get("/api/health", healthCheckHandler);
 
   await registerRoutes(app);
   const { createServer } = await import('http');
   const server = createServer(app);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+  // Error handling middleware (must be last)
+  app.use(errorHandler);
 
-    res.status(status).json({ message });
-    throw err;
+  // 404 handler
+  app.use((req, res) => {
+    throw new AppError(`Route ${req.method} ${req.path} not found`, 404, 'routing');
   });
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
@@ -70,7 +104,6 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-
   const port = 5000;
 
   // Import Socket.IO using ES module syntax
@@ -85,15 +118,16 @@ app.use((req, res, next) => {
   // Set up broadcast function for routes
   setBroadcastFunction((userId: number, message: any) => {
     io.to(`user_${userId}`).emit('message', message);
+    logger.debug(`Message broadcasted to user ${userId}`, 'websocket', userId, { messageType: message.type });
   });
 
   // WebSocket connection handling
   io.on('connection', (socket) => {
-    console.log('WebSocket connection established');
+    logger.info('WebSocket connection established', 'websocket');
 
     socket.on('join_user', (userId) => {
       socket.join(`user_${userId}`);
-      console.log(`User ${userId} joined their room`);
+      logger.info(`User ${userId} joined their room`, 'websocket', userId);
 
       // Send initial connection confirmation
       socket.emit('connected', { userId, timestamp: new Date() });
@@ -103,7 +137,11 @@ app.use((req, res, next) => {
     });
 
     socket.on('disconnect', () => {
-      console.log('WebSocket connection closed');
+      logger.info('WebSocket connection closed', 'websocket');
+    });
+
+    socket.on('error', (error) => {
+      logger.error('WebSocket error', 'websocket', undefined, error);
     });
   });
 
@@ -113,6 +151,7 @@ app.use((req, res, next) => {
       if (puppeteerAutomation.isReady()) {
         const sessionData = await puppeteerAutomation.captureSessionData();
         socket.emit('session_status', sessionData);
+        logger.debug('Session status sent', 'websocket');
       } else {
         socket.emit('session_status', {
           initialized: false,
@@ -120,7 +159,7 @@ app.use((req, res, next) => {
         });
       }
     } catch (error) {
-      console.error('Error checking session status:', error);
+      logger.error('Error checking session status', 'websocket', undefined, error);
       socket.emit('session_status', {
         initialized: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -129,35 +168,45 @@ app.use((req, res, next) => {
   }
 
   server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
+    logger.info(`Server started successfully on port ${port}`, 'server', undefined, {
+      port,
+      environment: process.env.NODE_ENV,
+      host: "0.0.0.0"
+    });
   });
 
   // Graceful shutdown
-  process.on('SIGTERM', async () => {
-    console.log('SIGTERM received, shutting down gracefully');
+  const gracefulShutdown = async (signal: string) => {
+    logger.info(`${signal} received, shutting down gracefully`, 'server');
     try {
       await puppeteerAutomation.cleanup();
       server.close(() => {
-        console.log('Server closed');
+        logger.info('Server closed successfully', 'server');
         process.exit(0);
       });
+      
+      // Force exit after 10 seconds if graceful shutdown fails
+      setTimeout(() => {
+        logger.error('Forced shutdown after timeout', 'server');
+        process.exit(1);
+      }, 10000);
     } catch (error) {
-      console.error('Error during shutdown:', error);
+      logger.error('Error during shutdown', 'server', undefined, error);
       process.exit(1);
     }
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught exception', 'server', undefined, error);
+    gracefulShutdown('UNCAUGHT_EXCEPTION');
   });
 
-  process.on('SIGINT', async () => {
-    console.log('SIGINT received, shutting down gracefully');
-    try {
-      await puppeteerAutomation.cleanup();
-      server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-      });
-    } catch (error) {
-      console.error('Error during shutdown:', error);
-      process.exit(1);
-    }
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled rejection', 'server', undefined, reason, { promise });
+    gracefulShutdown('UNHANDLED_REJECTION');
   });
 })();
