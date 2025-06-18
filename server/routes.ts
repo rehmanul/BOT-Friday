@@ -4,6 +4,11 @@ import { storage } from "./storage";
 import { PuppeteerAutomation } from "./automation/puppeteer";
 import { AIService } from "./automation/ai-service";
 import { RateLimiter } from "./automation/rate-limiter";
+
+// Initialize services
+const puppeteerService = new PuppeteerAutomation();
+const aiService = new AIService();
+const rateLimiter = new RateLimiter();
 import { insertCampaignSchema, insertCreatorSchema, insertCampaignInvitationSchema } from "@shared/schema";
 import { z } from "zod";
 import { TikTokWebhookHandler } from './webhooks/tiktok-webhooks';
@@ -11,6 +16,30 @@ import { AIModelManager } from './ai/ai-model-manager';
 import { tiktokService } from './services/tiktok-service';
 
 const aiModelManager = new AIModelManager();
+
+// WebSocket broadcast function - will be set by server/index.ts
+let broadcastToUser: (userId: number, message: any) => void = () => {};
+
+// Export function to set broadcast handler
+export function setBroadcastFunction(fn: (userId: number, message: any) => void) {
+  broadcastToUser = fn;
+}
+
+// Helper function to get API key environment variable name
+function getApiKeyName(modelId: string): string {
+  switch (modelId) {
+    case 'anthropic-claude-sonnet-4':
+      return 'ANTHROPIC_API_KEY';
+    case 'openai-gpt-4o':
+      return 'OPENAI_API_KEY';
+    case 'perplexity-sonar':
+      return 'PERPLEXITY_API_KEY';
+    case 'gemini-pro':
+      return 'GEMINI_API_KEY';
+    default:
+      throw new Error(`Unknown model ID: ${modelId}`);
+  }
+}
 
 export async function registerRoutes(app: Express) {
   // Directly send a real invitation (create + automate)
@@ -351,7 +380,7 @@ async function discoverCreators(criteria: {
       if (minGMV) filters.minGMV = parseFloat(minGMV as string);
       if (maxGMV) filters.maxGMV = parseFloat(maxGMV as string);
 
-      const { creators, total } = await storage.getCreators(filters, parseInt(limit as string), parseInt(offset as string));
+      const creators = await storage.getCreators(1, parseInt(limit as string), filters);
       res.json({ creators, total });
     } catch (error) {
       console.error("Get creators error:", error);

@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes, setBroadcastFunction } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { PuppeteerAutomation } from "./automation/puppeteer";
 
@@ -80,6 +80,11 @@ app.use((req, res, next) => {
       origin: "*",
       methods: ["GET", "POST"]
     }
+  });
+
+  // Set up broadcast function for routes
+  setBroadcastFunction((userId: number, message: any) => {
+    io.to(`user_${userId}`).emit('message', message);
   });
 
   // WebSocket connection handling
