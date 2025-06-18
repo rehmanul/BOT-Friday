@@ -84,6 +84,18 @@ export interface IStorage {
   updateCreatorEngagement(creatorId: number, engagementRate: number): Promise<void>;
   updateCreatorFollowers(creatorId: number, followers: number): Promise<void>;
   getCampaignInvitationByCreator(campaignId: number, creatorId: number): Promise<CampaignInvitation | null>;
+  storeTikTokTokens(userId: number, tokens: {
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date;
+    refreshExpiresAt: Date;
+  }): Promise<void>;
+  getTikTokTokens(userId: number): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date;
+    refreshExpiresAt: Date;
+  } | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -486,6 +498,74 @@ export class DatabaseStorage implements IStorage {
       responseRate,
       totalGMV: 847293, // This would be calculated from actual conversions
     };
+  }
+
+  // TikTok token management
+  async storeTikTokTokens(userId: number, tokens: {
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date;
+    refreshExpiresAt: Date;
+  }): Promise<void> {
+    const tokenData = JSON.stringify({
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresAt: tokens.expiresAt.toISOString(),
+      refreshExpiresAt: tokens.refreshExpiresAt.toISOString()
+    });
+
+    // Update existing session or create new one
+    const existingSession = await this.getActiveBrowserSession(userId);
+    if (existingSession) {
+      await db.update(browserSessions)
+        .set({
+          sessionData: tokenData,
+          lastActivity: new Date(),
+          expiresAt: tokens.expiresAt
+        })
+        .where(eq(browserSessions.userId, userId));
+    } else {
+      await db.insert(browserSessions).values({
+        userId,
+        sessionData: tokenData,
+        isActive: true,
+        lastActivity: new Date(),
+        expiresAt: tokens.expiresAt
+      });
+    }
+  }
+
+  async getTikTokTokens(userId: number): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: Date;
+    refreshExpiresAt: Date;
+  } | null> {
+    const session = await this.getActiveBrowserSession(userId);
+    if (!session || !session.sessionData) {
+      return null;
+    }
+
+    try {
+      const sessionDataString = typeof session.sessionData === 'string' 
+        ? session.sessionData 
+        : JSON.stringify(session.sessionData);
+      const tokenData = JSON.parse(sessionDataString);
+
+      if (!tokenData.accessToken || !tokenData.refreshToken) {
+        return null;
+      }
+
+      return {
+        accessToken: tokenData.accessToken,
+        refreshToken: tokenData.refreshToken,
+        expiresAt: new Date(tokenData.expiresAt),
+        refreshExpiresAt: new Date(tokenData.refreshExpiresAt)
+      };
+    } catch (error) {
+      console.error('Failed to parse token data:', error);
+      return null;
+    }
   }
 }
 

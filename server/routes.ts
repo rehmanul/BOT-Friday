@@ -6,7 +6,9 @@ import { AIService } from "./automation/ai-service";
 import { RateLimiter } from "./automation/rate-limiter";
 import { insertCampaignSchema, insertCreatorSchema, insertCampaignInvitationSchema } from "@shared/schema";
 import { z } from "zod";
+import { TikTokWebhookHandler } from './webhooks/tiktok-webhooks';
 import { AIModelManager } from './ai/ai-model-manager';
+import { tiktokService } from './services/tiktok-service';
 
 const aiModelManager = new AIModelManager();
 
@@ -811,7 +813,7 @@ async function discoverCreators(criteria: {
     }
   });
 
-  
+
 
   // (If you have any return value, adjust as needed. Otherwise, just end the function.)
 }
