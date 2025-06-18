@@ -14,11 +14,13 @@ export class TikTokService {
   // Load stored tokens from persistent storage
   private async loadStoredTokens(): Promise<void> {
     try {
-      const tokenData = await storage.get('tiktok_tokens');
+      // For now, we'll use a hardcoded user ID of 1
+      // In production, this should be passed from the authenticated user context
+      const tokenData = await storage.getTikTokTokens(1);
       if (tokenData) {
-        this.accessToken = tokenData.access_token;
-        this.refreshToken = tokenData.refresh_token;
-        this.tokenExpiry = tokenData.expires_at;
+        this.accessToken = tokenData.accessToken;
+        this.refreshToken = tokenData.refreshToken;
+        this.tokenExpiry = tokenData.expiresAt.getTime();
         
         if (this.accessToken) {
           tiktokAPI.setAccessToken(this.accessToken);
@@ -32,18 +34,19 @@ export class TikTokService {
   // Store tokens persistently
   private async storeTokens(accessToken: string, refreshToken: string, expiresIn: number): Promise<void> {
     try {
-      const expiresAt = Date.now() + (expiresIn * 1000);
-      const tokenData = {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: expiresAt
-      };
+      const expiresAt = new Date(Date.now() + (expiresIn * 1000));
+      const refreshExpiresAt = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)); // 30 days
 
-      await storage.set('tiktok_tokens', tokenData);
+      await storage.storeTikTokTokens(1, {
+        accessToken,
+        refreshToken,
+        expiresAt,
+        refreshExpiresAt
+      });
       
       this.accessToken = accessToken;
       this.refreshToken = refreshToken;
-      this.tokenExpiry = expiresAt;
+      this.tokenExpiry = expiresAt.getTime();
       
       tiktokAPI.setAccessToken(accessToken);
     } catch (error) {
@@ -122,12 +125,11 @@ export class TikTokService {
         console.log(`Message sent to creator ${creatorUsername}`);
         
         // Store the activity in our database
-        await storage.set(`message_${userId}_${creatorUsername}_${Date.now()}`, {
+        await storage.createActivityLog({
           userId,
-          creatorUsername,
-          message,
-          timestamp: new Date(),
-          status: 'sent'
+          action: 'message_sent',
+          details: `Message sent to ${creatorUsername}: ${message}`,
+          timestamp: new Date()
         });
       }
 
@@ -222,21 +224,14 @@ export class TikTokService {
   // Get stored messages/activities
   async getStoredActivities(userId: number): Promise<any[]> {
     try {
-      const activities = [];
-      const keys = await storage.getKeys();
-      
-      for (const key of keys) {
-        if (key.startsWith(`message_${userId}_`)) {
-          const activity = await storage.get(key);
-          if (activity) {
-            activities.push(activity);
-          }
-        }
-      }
-
-      return activities.sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+      const activities = await storage.getActivityLogs(userId, 50);
+      return activities.map(activity => ({
+        userId: activity.userId,
+        action: activity.action,
+        details: activity.details,
+        timestamp: activity.timestamp,
+        status: 'completed'
+      }));
     } catch (error) {
       console.error('Failed to get stored activities:', error);
       return [];
@@ -250,7 +245,8 @@ export class TikTokService {
     this.tokenExpiry = null;
     
     try {
-      await storage.delete('tiktok_tokens');
+      // Deactivate browser sessions for user ID 1
+      await storage.deactivateBrowserSessions(1);
     } catch (error) {
       console.error('Failed to clear stored tokens:', error);
     }
