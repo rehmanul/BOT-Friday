@@ -229,7 +229,44 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Send invitation endpoint
+  // Send invitation endpoint (for direct campaign invitations)
+  app.post("/api/campaigns/send-invitation", async (req, res) => {
+    try {
+      const { creatorId, message } = req.body;
+      
+      if (!creatorId || !message) {
+        return res.status(400).json({ error: "Creator ID and message are required" });
+      }
+
+      const creator = await storage.getCreator(parseInt(creatorId));
+      if (!creator) {
+        return res.status(404).json({ error: "Creator not found" });
+      }
+
+      // Create invitation record
+      const invitation = await storage.createCampaignInvitation({
+        campaignId: 1, // Default campaign for now
+        creatorId: parseInt(creatorId),
+        message,
+        status: "pending",
+        sentAt: null
+      });
+
+      // For now, just mark as sent without actual TikTok integration
+      // In production, you'd integrate with TikTok API or Puppeteer here
+      await storage.updateCampaignInvitation(invitation.id, {
+        status: "sent",
+        sentAt: new Date()
+      });
+
+      res.json({ success: true, invitationId: invitation.id });
+    } catch (error) {
+      console.error("Send invitation error:", error);
+      res.status(500).json({ error: "Failed to send invitation" });
+    }
+  });
+
+  // Send invitation endpoint (for existing invitations)
   app.post("/api/invitations/:id/send", async (req, res) => {
     try {
       const invitationId = parseInt(req.params.id);
