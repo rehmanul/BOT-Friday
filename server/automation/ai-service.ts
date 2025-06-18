@@ -282,3 +282,6 @@ export class AIService {
     };
   }
 }
+
+// Export a singleton instance
+export const aiService = new AIService();
