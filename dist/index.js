@@ -1,5 +1,11 @@
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -1718,15 +1724,40 @@ var PuppeteerAutomation = class {
   browser = null;
   page = null;
   sessionData = null;
+  isInitialized = false;
   async initializeSession() {
     try {
       if (this.browser) {
         await this.browser.close();
       }
       const randomUA = getRandomUserAgent();
+      let executablePath;
+      try {
+        const { execSync } = __require("child_process");
+        try {
+          executablePath = execSync("which chromium-browser || which chromium || which google-chrome-stable || which google-chrome", { encoding: "utf8" }).trim();
+          if (executablePath) {
+            console.log("Using system Chrome:", executablePath);
+          }
+        } catch {
+          try {
+            executablePath = execSync('find /home/runner/.cache/puppeteer -name "chrome" -type f 2>/dev/null | head -1', { encoding: "utf8" }).trim();
+            if (executablePath) {
+              console.log("Using Puppeteer cached Chrome:", executablePath);
+            }
+          } catch {
+            console.log("No Chrome executable found");
+          }
+        }
+      } catch (error) {
+        console.log("Chrome detection failed:", error);
+        executablePath = void 0;
+      }
       this.browser = await puppeteer.launch({
-        headless: false,
-        // Keep false for session capture
+        headless: true,
+        // Changed to headless for Replit environment
+        executablePath,
+        // Use system Chromium if found
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",
@@ -1747,7 +1778,20 @@ var PuppeteerAutomation = class {
           "--mute-audio",
           "--no-default-browser-check",
           "--safebrowsing-disable-auto-update",
-          "--disable-blink-features=AutomationControlled"
+          "--disable-blink-features=AutomationControlled",
+          "--single-process",
+          "--disable-background-timer-throttling",
+          "--disable-renderer-backgrounding",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-ipc-flooding-protection",
+          "--disable-background-mode",
+          "--disable-component-extensions-with-background-pages",
+          "--disable-features=TranslateUI",
+          "--disable-features=BlinkGenPropertyTrees",
+          "--run-all-compositor-stages-before-draw",
+          "--disable-threaded-animation",
+          "--disable-threaded-scrolling",
+          "--disable-checker-imaging"
         ],
         defaultViewport: null
       });
@@ -1780,6 +1824,7 @@ var PuppeteerAutomation = class {
       } else {
         console.log("No active session found. User needs to login manually.");
       }
+      this.isInitialized = true;
       return {
         initialized: true,
         timestamp: /* @__PURE__ */ new Date(),
@@ -1792,7 +1837,14 @@ var PuppeteerAutomation = class {
       };
     } catch (error) {
       console.error("Failed to initialize Puppeteer session:", error);
-      throw new Error("Failed to initialize automation session");
+      console.log("Automation features will be disabled until Chrome is available");
+      this.isInitialized = false;
+      return {
+        initialized: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: /* @__PURE__ */ new Date(),
+        message: "Chrome browser not found. Automation features disabled."
+      };
     }
   }
   // Capture existing login session
@@ -2227,12 +2279,29 @@ var PuppeteerAutomation = class {
       "Cache-Control": "max-age=0"
     });
   }
+  isReady() {
+    return this.isInitialized && this.browser !== null && this.page !== null;
+  }
+  async ensureInitialized() {
+    if (!this.isReady()) {
+      try {
+        const result = await this.initializeSession();
+        this.isInitialized = result.initialized;
+        return this.isInitialized;
+      } catch (error) {
+        console.error("Failed to ensure initialization:", error);
+        return false;
+      }
+    }
+    return true;
+  }
   async cleanup() {
     try {
       if (this.browser) {
         await this.browser.close();
         this.browser = null;
         this.page = null;
+        this.isInitialized = false;
       }
     } catch (error) {
       console.error("Cleanup error:", error);
@@ -2270,7 +2339,9 @@ app.use((req, res, next) => {
 });
 (async () => {
   const puppeteerAutomation = new PuppeteerAutomation();
-  await puppeteerAutomation.initializeSession();
+  puppeteerAutomation.initializeSession().catch((error) => {
+    console.log("Puppeteer initialization failed, automation features disabled:", error.message);
+  });
   await registerRoutes(app);
   const { createServer } = await import("http");
   const server = createServer(app);
@@ -2307,10 +2378,21 @@ app.use((req, res, next) => {
   });
   async function checkAndSendSessionStatus(socket) {
     try {
-      const sessionData = await puppeteerAutomation.captureSessionData();
-      socket.emit("session_status", sessionData);
+      if (puppeteerAutomation.isReady()) {
+        const sessionData = await puppeteerAutomation.captureSessionData();
+        socket.emit("session_status", sessionData);
+      } else {
+        socket.emit("session_status", {
+          initialized: false,
+          message: "Automation service not available"
+        });
+      }
     } catch (error) {
       console.error("Error checking session status:", error);
+      socket.emit("session_status", {
+        initialized: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   }
   server.listen(port, "0.0.0.0", () => {
