@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreatorTable } from '@/components/creators/creator-table';
 import { CreatorProfileModal } from '@/components/creators/creator-profile-modal';
 import { TikTokConnect } from '@/components/auth/tiktok-connect';
@@ -20,21 +21,29 @@ import {
   Upload,
   Sparkles,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  MessageSquare,
+  Send
 } from 'lucide-react';
+import { useCreators, useDiscoverCreators } from '@/hooks/use-creators';
+import { toast } from '@/components/ui/toast-system';
+import type { CreatorFilters, Creator } from '@/types';
 
-interface Creator {
+interface UICreator {
   id: number;
   username: string;
-  displayName: string;
+  displayName?: string;
   followers: number;
   engagement: number;
-  category: string;
+  engagementRate: number;
+  category?: string;
   location?: string;
   verified: boolean;
   avatar: string;
   gmv: number;
   joinedDate?: string;
+  status: string;
 }
 
 interface TikTokAuthStatus {
@@ -49,52 +58,6 @@ interface TikTokAuthStatus {
 }
 
 export default function Creators() {
-  const [creators, setCreators] = useState<Creator[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCreators, setSelectedCreators] = useState<number[]>([]);
-  const [showInvitationDialog, setShowInvitationDialog] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
-  const [invitationMessage, setInvitationMessage] = useState('');
-  const [totalCreators, setTotalCreators] = useState(0);
-  const [discoveryQuery, setDiscoveryQuery] = useState('');
-  const [isDiscovering, setIsDiscovering] = useState(false);
-  const [tiktokAuth, setTiktokAuth] = useState<TikTokAuthStatus>({ isAuthenticated: false });
-  const { toast } = useToast();
-
-  // Check TikTok authentication status
-  useEffect(() => {
-    const checkTikTokAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/tiktok/status');
-        const data = await response.json();
-        setTiktokAuth(data);
-      } catch (error) {
-        console.error('Failed to check TikTok auth status:', error);
-      }
-    };
-
-    checkTikTokAuth();
-  }, []);
-
-import { useState } from 'react';
-import { CreatorTable, UICreator } from '@/components/creators/creator-table';
-import { CreatorProfileModal } from '@/components/creators/creator-profile-modal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Search, Filter, Download, UserPlus, Eye, MessageSquare, Send } from 'lucide-react';
-import { useCreators, useDiscoverCreators } from '@/hooks/use-creators';
-import { toast } from '@/components/ui/toast-system';
-import type { CreatorFilters, Creator } from '@/types';
-import { Header } from '@/components/layout/header';
-
-export default function Creators() {
   const [filters, setFilters] = useState<CreatorFilters>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
@@ -103,6 +66,7 @@ export default function Creators() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showInvitationDialog, setShowInvitationDialog] = useState(false);
   const [invitationMessage, setInvitationMessage] = useState('');
+  const [tiktokAuth, setTiktokAuth] = useState<TikTokAuthStatus>({ isAuthenticated: false });
 
   const itemsPerPage = 25;
 
@@ -121,7 +85,7 @@ export default function Creators() {
     followers: typeof c.followers === 'number' ? c.followers : 0,
     engagement: c.engagementRate ? parseFloat(c.engagementRate) : 0,
     gmv: c.gmv ? parseFloat(c.gmv) : 0,
-    status: 'active', // TODO: derive from backend if available
+    status: 'active',
     location: c.profileData?.location || '',
     joinedDate: c.profileData?.joinedDate || '',
     avatar: c.profileData?.avatar || '',
@@ -131,9 +95,24 @@ export default function Creators() {
 
   const discoverCreatorsMutation = useDiscoverCreators();
 
+  // Check TikTok authentication status
+  useEffect(() => {
+    const checkTikTokAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/tiktok/status');
+        const data = await response.json();
+        setTiktokAuth(data);
+      } catch (error) {
+        console.error('Failed to check TikTok auth status:', error);
+      }
+    };
+
+    checkTikTokAuth();
+  }, []);
+
   const handleFilterChange = (key: keyof CreatorFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(0); // Reset to first page when filters change
+    setCurrentPage(0);
   };
 
   const clearFilters = () => {
@@ -165,7 +144,6 @@ export default function Creators() {
   };
 
   const handleExportCreators = () => {
-    // In a real implementation, this would trigger a CSV download
     toast.info('Export Started', 'Your creator database export is being prepared');
   };
 
@@ -205,10 +183,6 @@ export default function Creators() {
     setShowInvitationDialog(true);
   };
 
-  const handleViewTikTokProfile = (creator: Creator) => {
-    window.open(`https://www.tiktok.com/@${creator.username}`, '_blank');
-  };
-
   const handleSendInvitationMessage = async () => {
     if (!selectedCreator) return;
 
@@ -234,7 +208,6 @@ export default function Creators() {
         
         if (errorData.requiresAuth) {
           toast.error('Authentication Required', 'Please connect your TikTok account first.');
-          // Redirect to TikTok auth
           window.location.href = '/api/auth/tiktok/1';
         } else {
           toast.error('Send Failed', errorData.error || 'Failed to send invitation.');
