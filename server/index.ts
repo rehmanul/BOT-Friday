@@ -84,6 +84,8 @@ app.use((req, res, next) => {
   // Health check endpoint (before other routes)
   app.get("/health", healthCheckHandler);
   app.get("/api/health", healthCheckHandler);
+  app.head("/", (req, res) => res.status(200).end());
+  app.head("/health", (req, res) => res.status(200).end());
 
   await registerRoutes(app);
   const { createServer } = await import('http');
@@ -106,10 +108,9 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Use PORT environment variable for deployment platforms like Render
+  // Fall back to 5000 for local development
+  const port = parseInt(process.env.PORT || '5000', 10);
 
   // Import Socket.IO using ES module syntax
   const { Server } = await import('socket.io');

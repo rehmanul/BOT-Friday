@@ -60,7 +60,7 @@ export class PuppeteerAutomation {
         executablePath = undefined;
       }
 
-      this.browser = await puppeteer.launch({
+      const launchOptions = {
         headless: true, // Changed to headless for Replit environment
         executablePath, // Use system Chromium if found
         args: [
@@ -99,7 +99,33 @@ export class PuppeteerAutomation {
           '--disable-checker-imaging'
         ],
         defaultViewport: null
-      });
+      };
+
+      // Add Chrome executable path for production environments
+      if (process.env.NODE_ENV === 'production') {
+        const possiblePaths = [
+          '/usr/bin/google-chrome',
+          '/usr/bin/google-chrome-stable',
+          '/usr/bin/chromium-browser',
+          '/usr/bin/chromium',
+          process.env.CHROME_BIN
+        ].filter(Boolean);
+
+        for (const path of possiblePaths) {
+          try {
+            const { existsSync } = await import('fs');
+            if (existsSync(path)) {
+              launchOptions.executablePath = path;
+              console.log(`Using Chrome at: ${path}`, 'puppeteer');
+              break;
+            }
+          } catch (error) {
+            continue;
+          }
+        }
+      }
+
+      this.browser = await puppeteer.launch(launchOptions);
 
       this.page = await this.browser.newPage();
 
