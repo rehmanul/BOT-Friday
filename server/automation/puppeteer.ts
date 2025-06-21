@@ -759,14 +759,6 @@ export class PuppeteerAutomation {
     return true;
   }
 
-  async cleanup(): Promise<void> {
-    try {
-      if (this.browser) {
-        await this.browser.close();
-        this.browser = null;
-        this.page = null;
-        this.isInitialized = false;
-      }
     } catch (error) {
       console.error('Cleanup error:', error);
     }
