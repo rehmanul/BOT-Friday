@@ -1,0 +1,100 @@
+2025-06-21T20:48:20.51802676Z To address issues that do not require attention, run:
+2025-06-21T20:48:20.51803147Z   npm audit fix
+2025-06-21T20:48:20.51803499Z 
+2025-06-21T20:48:20.51803777Z To address all issues (including breaking changes), run:
+2025-06-21T20:48:20.51804115Z   npm audit fix --force
+2025-06-21T20:48:20.51804374Z 
+2025-06-21T20:48:20.51804711Z Run `npm audit` for details.
+2025-06-21T20:48:20.738322894Z 
+2025-06-21T20:48:20.738345464Z > rest-express@1.0.0 build
+2025-06-21T20:48:20.738349844Z > vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+2025-06-21T20:48:20.738353984Z 
+2025-06-21T20:48:21.071086982Z vite v6.3.5 building for production...
+2025-06-21T20:48:21.145936843Z transforming...
+2025-06-21T20:48:25.46681652Z ✓ 1778 modules transformed.
+2025-06-21T20:48:25.765465892Z rendering chunks...
+2025-06-21T20:48:25.77573929Z computing gzip size...
+2025-06-21T20:48:25.791017029Z ../dist/public/index.html                   0.63 kB │ gzip:   0.38 kB
+2025-06-21T20:48:25.79104208Z ../dist/public/assets/index-dgNctLnj.css   71.29 kB │ gzip:  12.37 kB
+2025-06-21T20:48:25.791187452Z ../dist/public/assets/index-WGXnnDHS.js   503.24 kB │ gzip: 148.24 kB
+2025-06-21T20:48:25.791370815Z 
+2025-06-21T20:48:25.791379775Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-06-21T20:48:25.791385325Z - Using dynamic import() to code-split the application
+2025-06-21T20:48:25.791390725Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-06-21T20:48:25.791393915Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-06-21T20:48:25.791766071Z ✓ built in 4.69s
+2025-06-21T20:48:26.039268799Z ▲ [WARNING] Duplicate member "cleanup" in class body [duplicate-class-member]
+2025-06-21T20:48:26.039287389Z 
+2025-06-21T20:48:26.039291669Z     server/automation/puppeteer.ts:742:8:
+2025-06-21T20:48:26.039294619Z       742 │   async cleanup(): Promise<void> {
+2025-06-21T20:48:26.039298059Z           ╵         ~~~~~~~
+2025-06-21T20:48:26.039300969Z 
+2025-06-21T20:48:26.039303739Z   The original member "cleanup" is here:
+2025-06-21T20:48:26.039306419Z 
+2025-06-21T20:48:26.039309109Z     server/automation/puppeteer.ts:389:8:
+2025-06-21T20:48:26.03931187Z       389 │   async cleanup(): Promise<void> {
+2025-06-21T20:48:26.039314699Z           ╵         ~~~~~~~
+2025-06-21T20:48:26.039317299Z 
+2025-06-21T20:48:26.040856295Z ▲ [WARNING] Duplicate member "validateToken" in class body [duplicate-class-member]
+2025-06-21T20:48:26.040881705Z 
+2025-06-21T20:48:26.040885845Z     server/api/tiktok-api.ts:242:8:
+2025-06-21T20:48:26.040889335Z       242 │   async validateToken(): Promise<boolean> {
+2025-06-21T20:48:26.040892165Z           ╵         ~~~~~~~~~~~~~
+2025-06-21T20:48:26.040894745Z 
+2025-06-21T20:48:26.040897616Z   The original member "validateToken" is here:
+2025-06-21T20:48:26.040900045Z 
+2025-06-21T20:48:26.040902996Z     server/api/tiktok-api.ts:70:8:
+2025-06-21T20:48:26.040905476Z       70 │   async validateToken(): Promise<boolean> {
+2025-06-21T20:48:26.040907976Z          ╵         ~~~~~~~~~~~~~
+2025-06-21T20:48:26.040910576Z 
+2025-06-21T20:48:26.086586551Z 2 warnings
+2025-06-21T20:48:26.086638931Z 
+2025-06-21T20:48:26.086643662Z   dist/index.js  124.7kb
+2025-06-21T20:48:26.086646282Z 
+2025-06-21T20:48:26.086648782Z ⚡ Done in 52ms
+2025-06-21T20:48:27.868610161Z ==> Uploading build...
+2025-06-21T20:48:37.570162967Z ==> Uploaded in 5.5s. Compression took 4.2s
+2025-06-21T20:48:37.612279204Z ==> Build successful 🎉
+2025-06-21T20:48:41.281017417Z ==> Deploying...
+2025-06-21T20:49:05.373071172Z ==> Running 'npm run start'
+2025-06-21T20:49:06.469110207Z 
+2025-06-21T20:49:06.469138877Z > rest-express@1.0.0 start
+2025-06-21T20:49:06.469179698Z > NODE_ENV=production node dist/index.js
+2025-06-21T20:49:06.469183278Z 
+2025-06-21T20:49:16.169616382Z Using SQLite for development
+2025-06-21T20:49:16.463655407Z Missing API keys: ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, PERPLEXITY_API_KEY. Some AI features will be unavailable.
+2025-06-21T20:49:16.463721568Z Gemini API key not found. AI features will be limited.
+2025-06-21T20:49:16.464210388Z [2025-06-21T20:49:16.463Z] INFO: Rate limiter initialized (rate-limiter)
+2025-06-21T20:49:16.601982512Z [2025-06-21T20:49:16.601Z] INFO: Loaded default values for optional environment variables (env-validator)
+2025-06-21T20:49:16.602575483Z [2025-06-21T20:49:16.602Z] INFO: Environment validation completed (env-validator)
+2025-06-21T20:49:16.602858179Z [2025-06-21T20:49:16.602Z] INFO: Server starting up (server)
+2025-06-21T20:49:18.267629988Z [2025-06-21T20:49:18.266Z] INFO: Server started successfully on port 5000 (server)
+2025-06-21T20:49:19.270105549Z Error: Route HEAD / not found
+2025-06-21T20:49:19.27012446Z     at file:///opt/render/project/src/dist/index.js:3489:11
+2025-06-21T20:49:19.27013041Z     at Layer.handle [as handle_request] (/opt/render/project/src/node_modules/express/lib/router/layer.js:95:5)
+2025-06-21T20:49:19.27013548Z     at trim_prefix (/opt/render/project/src/node_modules/express/lib/router/index.js:328:13)
+2025-06-21T20:49:19.27014059Z     at /opt/render/project/src/node_modules/express/lib/router/index.js:286:9
+2025-06-21T20:49:19.27014549Z     at Function.process_params (/opt/render/project/src/node_modules/express/lib/router/index.js:346:12)
+2025-06-21T20:49:19.27014983Z     at next (/opt/render/project/src/node_modules/express/lib/router/index.js:280:10)
+2025-06-21T20:49:19.27015411Z     at Layer.handle [as handle_request] (/opt/render/project/src/node_modules/express/lib/router/layer.js:91:12)
+2025-06-21T20:49:19.270158161Z     at trim_prefix (/opt/render/project/src/node_modules/express/lib/router/index.js:328:13)
+2025-06-21T20:49:19.270162541Z     at /opt/render/project/src/node_modules/express/lib/router/index.js:286:9
+2025-06-21T20:49:19.270166891Z     at Function.process_params (/opt/render/project/src/node_modules/express/lib/router/index.js:346:12)
+2025-06-21T20:49:36.163639748Z Failed to initialize Puppeteer session: Error: Could not find Chrome (ver. 137.0.7151.55). This can occur if either
+2025-06-21T20:49:36.163671009Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-06-21T20:49:36.163676609Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-06-21T20:49:36.163681549Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-06-21T20:49:36.163687029Z     at ChromeLauncher.resolveExecutablePath (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:308:27)
+2025-06-21T20:49:36.163691199Z     at ChromeLauncher.computeLaunchArguments (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:93:24)
+2025-06-21T20:49:36.163695629Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:84:39)
+2025-06-21T20:49:36.163700009Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:45:22)
+2025-06-21T20:49:36.163703989Z     at PuppeteerNode.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/PuppeteerNode.js:143:31)
+2025-06-21T20:49:36.16372371Z     at PuppeteerExtra.launch (/opt/render/project/src/node_modules/puppeteer-extra/dist/index.cjs.js:128:41)
+2025-06-21T20:49:36.16372642Z     at async PuppeteerAutomation.initializeSession (file:///opt/render/project/src/dist/index.js:2642:22)
+2025-06-21T20:49:36.16373084Z Automation features will be disabled until Chrome is available
+2025-06-21T20:49:46.429519159Z ==> Continuing to scan for open port 10000 (from PORT environment variable)...
+2025-06-21T20:50:47.490740924Z ==> Continuing to scan for open port 10000 (from PORT environment variable)...
+2025-06-21T20:51:48.539809557Z ==> Continuing to scan for open port 10000 (from PORT environment variable)...
+2025-06-21T20:52:49.674836Z ==> Continuing to scan for open port 10000 (from PORT environment variable)...
+2025-06-21T20:53:50.570013635Z ==> Continuing to scan for open port 10000 (from PORT environment variable)...
+2025-06-21T20:54:26.012402298Z ==> Port scan timeout reached, failed to detect open port 10000 from PORT environment variable. Bind your service to port 10000 or update the PORT environment variable to the correct port.

@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "nix", "typescript-language-server"]
+modules = ["nodejs-20", "web", "nix"]
 run = "npm run dev"
 
 [workflows]
