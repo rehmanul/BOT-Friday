@@ -762,4 +762,3 @@ export class PuppeteerAutomation {
       console.error('Cleanup error:', error);
     }
   }
-}
