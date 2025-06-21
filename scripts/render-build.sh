@@ -9,6 +9,10 @@ echo "Starting Render build process..."
 echo "Installing dependencies..."
 npm install --include=dev
 
+# Install Chrome for Puppeteer
+echo "Installing Chrome for Puppeteer..."
+npx puppeteer browsers install chrome
+
 # Verify vite is available
 if ! command -v vite &> /dev/null; then
     echo "Vite not found in PATH, using npx..."

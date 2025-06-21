@@ -104,17 +104,31 @@ export class PuppeteerAutomation {
       // Add Chrome executable path for production environments
       if (process.env.NODE_ENV === 'production') {
         const possiblePaths = [
+          process.env.CHROME_BIN,
+          process.env.PUPPETEER_EXECUTABLE_PATH,
           '/usr/bin/google-chrome',
           '/usr/bin/google-chrome-stable',
           '/usr/bin/chromium-browser',
           '/usr/bin/chromium',
-          process.env.CHROME_BIN
+          // Puppeteer cache paths for Render
+          '/opt/render/.cache/puppeteer/chrome/linux-**/chrome',
+          '/home/runner/.cache/puppeteer/chrome/linux-**/chrome'
         ].filter(Boolean);
 
         for (const path of possiblePaths) {
           try {
             const { existsSync } = await import('fs');
-            if (existsSync(path)) {
+            const { glob } = await import('glob');
+            
+            // Handle glob patterns for Puppeteer cache
+            if (path.includes('**')) {
+              const matches = glob.sync(path);
+              if (matches.length > 0) {
+                launchOptions.executablePath = matches[0];
+                console.log(`Using Chrome at: ${matches[0]}`, 'puppeteer');
+                break;
+              }
+            } else if (existsSync(path)) {
               launchOptions.executablePath = path;
               console.log(`Using Chrome at: ${path}`, 'puppeteer');
               break;
