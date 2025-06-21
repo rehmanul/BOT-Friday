@@ -95,6 +95,7 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
+    logger.info('Setting up static file serving for production', 'server');
     serveStatic(app);
   }
 
