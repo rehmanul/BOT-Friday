@@ -3,7 +3,7 @@ services:
     name: tiktok-automation
     env: node
     plan: starter
-    buildCommand: chmod +x scripts/render-build.sh && ./scripts/render-build.sh
+    buildCommand: npm install && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
