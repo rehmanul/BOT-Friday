@@ -1,0 +1,50 @@
+2025-06-21T23:09:48.067656595Z ⚡ Done in 7ms
+2025-06-21T23:09:48.412635019Z Initializing production database...
+2025-06-21T23:09:48.415453325Z No migrations directory found
+2025-06-21T23:09:48.42797853Z Basic database schema created
+2025-06-21T23:09:48.428064452Z Database initialization completed
+2025-06-21T23:09:51.136788648Z ==> Uploading build...
+2025-06-21T23:10:00.794616491Z ==> Uploaded in 6.1s. Compression took 3.6s
+2025-06-21T23:10:00.82811665Z ==> Build successful 🎉
+2025-06-21T23:10:02.815729141Z ==> Deploying...
+2025-06-21T23:10:35.286528205Z ==> Running 'npm run start'
+2025-06-21T23:10:36.286139726Z 
+2025-06-21T23:10:36.286172116Z > rest-express@1.0.0 start
+2025-06-21T23:10:36.286177287Z > NODE_ENV=production node dist/index.js
+2025-06-21T23:10:36.286179816Z 
+2025-06-21T23:10:45.992569124Z Using SQLite database: ./prod.db
+2025-06-21T23:10:46.001819949Z No migrations directory found, skipping migration
+2025-06-21T23:10:46.004177527Z Missing API keys: ANTHROPIC_API_KEY, OPENAI_API_KEY. Some AI features will be unavailable.
+2025-06-21T23:10:46.18792934Z [2025-06-21T23:10:46.086Z] INFO: Rate limiter initialized (rate-limiter)
+2025-06-21T23:10:46.391654031Z [2025-06-21T23:10:46.391Z] INFO: Environment validation completed (env-validator)
+2025-06-21T23:10:46.391884917Z [2025-06-21T23:10:46.391Z] INFO: Server starting up (server)
+2025-06-21T23:10:46.399524694Z Error fetching active browser session: SqliteError: no such table: browser_sessions
+2025-06-21T23:10:46.399542944Z     at Database.prepare (/opt/render/project/src/node_modules/better-sqlite3/lib/methods/wrappers.js:5:21)
+2025-06-21T23:10:46.399549664Z     at BetterSQLiteSession.prepareQuery (file:///opt/render/project/src/node_modules/drizzle-orm/better-sqlite3/session.js:20:30)
+2025-06-21T23:10:46.399552724Z     at BetterSQLiteSession.prepareOneTimeQuery (file:///opt/render/project/src/node_modules/drizzle-orm/sqlite-core/session.js:65:17)
+2025-06-21T23:10:46.399555784Z     at SQLiteSelectBase._prepare (file:///opt/render/project/src/node_modules/drizzle-orm/sqlite-core/query-builders/select.js:572:88)
+2025-06-21T23:10:46.399558834Z     at SQLiteSelectBase.all (file:///opt/render/project/src/node_modules/drizzle-orm/sqlite-core/query-builders/select.js:588:17)
+2025-06-21T23:10:46.399561654Z     at SQLiteSelectBase.execute (file:///opt/render/project/src/node_modules/drizzle-orm/sqlite-core/query-builders/select.js:597:17)
+2025-06-21T23:10:46.399564714Z     at SQLiteSelectBase.then (file:///opt/render/project/src/node_modules/drizzle-orm/query-promise.js:21:17) {
+2025-06-21T23:10:46.399567915Z   code: 'SQLITE_ERROR'
+2025-06-21T23:10:46.399570715Z }
+2025-06-21T23:10:48.189044927Z [2025-06-21T23:10:48.188Z] INFO: Server started successfully on port 10000 (server)
+2025-06-21T23:10:53.853562462Z ==> Your service is live 🎉
+2025-06-21T23:10:53.883941591Z ==> 
+2025-06-21T23:10:53.911997251Z ==> ///////////////////////////////////////////////////////////
+2025-06-21T23:10:53.942770851Z ==> 
+2025-06-21T23:10:53.971474671Z ==> Available at your primary URL https://bot-friday.onrender.com
+2025-06-21T23:10:54.001412201Z ==> 
+2025-06-21T23:10:54.030799041Z ==> ///////////////////////////////////////////////////////////
+2025-06-21T23:11:06.495773416Z Failed to initialize Puppeteer session: Error: Could not find Chrome (ver. 137.0.7151.119). This can occur if either
+2025-06-21T23:11:06.495795957Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-06-21T23:11:06.495801357Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-06-21T23:11:06.495805457Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-06-21T23:11:06.495835098Z     at ChromeLauncher.resolveExecutablePath (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:308:27)
+2025-06-21T23:11:06.495841058Z     at ChromeLauncher.computeLaunchArguments (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:93:24)
+2025-06-21T23:11:06.495845338Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:84:39)
+2025-06-21T23:11:06.495848948Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:45:22)
+2025-06-21T23:11:06.495852628Z     at PuppeteerNode.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/PuppeteerNode.js:143:31)
+2025-06-21T23:11:06.495857228Z     at PuppeteerExtra.launch (/opt/render/project/src/node_modules/puppeteer-extra/dist/index.cjs.js:128:41)
+2025-06-21T23:11:06.495861278Z     at async PuppeteerAutomation.initializeSession (file:///opt/render/project/src/dist/index.js:2714:22)
+2025-06-21T23:11:06.495913039Z Automation features will be disabled until Chrome is available
