@@ -1,27 +1,16 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import * as schema from "../shared/sqlite-schema";
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import fs from 'fs';
-import path from 'path';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from "../shared/schema";
 
-// Force SQLite for development
-const dbPath = process.env.NODE_ENV === 'production' ? './prod.db' : './dev.db';
-console.log(`Using SQLite database: ${dbPath}`);
-const sqlite = new Database(dbPath);
+// Use PostgreSQL for both development and production
+const databaseUrl = process.env.DATABASE_URL || 'postgresql://yang:nNTm6Q4un1aF25fmVvl7YqSzWffyznIe@dpg-d0t3rlili9vc739k84gg-a.oregon-postgres.render.com/dg4u_tiktok_bot';
 
-// Initialize database with schema
-try {
-  // Check if migrations directory exists
-  const migrationsPath = path.join(process.cwd(), 'migrations');
-  if (fs.existsSync(migrationsPath)) {
-    console.log('Running database migrations...');
-    migrate(drizzle(sqlite), { migrationsFolder: migrationsPath });
-  } else {
-    console.log('No migrations directory found, skipping migration');
-  }
-} catch (error: any) {
-  console.log('Migration failed or not needed:', error?.message || String(error));
-}
+console.log(`Connecting to PostgreSQL database...`);
 
-export const db = drizzle(sqlite, { schema });
+const client = postgres(databaseUrl, {
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
+
+export const db = drizzle(client, { schema });

@@ -17,7 +17,7 @@ import {
   type InsertBrowserSession,
   type ActivityLog,
   type InsertActivityLog,
-} from "../shared/sqlite-schema";
+} from '../shared/schema';
 import { db } from "./db";
 import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
 

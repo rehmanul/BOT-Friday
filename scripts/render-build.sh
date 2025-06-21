@@ -13,6 +13,9 @@ npm install --include=dev
 echo "Installing Chrome for Puppeteer..."
 npx puppeteer browsers install chrome
 
+echo "Setting up PostgreSQL database..."
+node scripts/setup-postgres.js
+
 # Verify vite is available
 if ! command -v vite &> /dev/null; then
     echo "Vite not found in PATH, using npx..."
