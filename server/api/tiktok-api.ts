@@ -237,17 +237,6 @@ export class TikTokAPI {
   async getAccountInfo(): Promise<any> {
     return this.makeAPICall('/oauth2/advertiser/get/');
   }
-
-  // Validate access token
-  async validateToken(): Promise<boolean> {
-    try {
-      await this.getAccountInfo();
-      return true;
-    } catch (error) {
-      console.error('Token validation failed:', error);
-      return false;
-    }
-  }
 }
 
 export const tiktokAPI = new TikTokAPI();
