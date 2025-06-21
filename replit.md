@@ -84,7 +84,9 @@ This is a full-stack TypeScript application combining a React frontend with an E
 
 Preferred communication style: Simple, everyday language.
 
-## Changelog
+## Recent Changes
 
-Changelog:
-- June 21, 2025. Initial setup
+- June 21, 2025: Fixed Render deployment issue by updating build command to include devDependencies
+  - Modified render.yaml to use `npm install --include=dev` instead of `npm install`
+  - This ensures build tools (vite, esbuild) are available during deployment
+- June 21, 2025: Initial setup
