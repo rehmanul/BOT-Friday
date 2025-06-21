@@ -1,76 +1,91 @@
-
 import { useEffect, useRef, useCallback } from 'react';
-import { connectWebSocket, disconnectWebSocket, getWebSocket } from '../lib/websocket';
+import { io, Socket } from 'socket.io-client';
 
-export const useWebSocket = (userId: number | null) => {
-  const wsRef = useRef<WebSocket | null>(null);
-  const userIdRef = useRef<number | null>(null);
-  const messageHandlers = useRef<Map<string, Function>>(new Map());
-
-  const handleMessage = useCallback((event: MessageEvent) => {
-    try {
-      const data = JSON.parse(event.data);
-      const handler = messageHandlers.current.get(data.type);
-      if (handler) {
-        handler(data);
-      }
-    } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
-    }
-  }, []);
-
-  const onMessage = useCallback((type: string, handler: Function) => {
-    messageHandlers.current.set(type, handler);
-  }, []);
-
-  const offMessage = useCallback((type: string) => {
-    messageHandlers.current.delete(type);
-  }, []);
-
-  const sendMessage = useCallback((message: any) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
-    }
-  }, []);
+export function useWebSocket(userId: number) {
+  const socketRef = useRef<Socket | null>(null);
+  const listenersRef = useRef<Map<string, Function[]>>(new Map());
 
   useEffect(() => {
-    if (!userId || userId === userIdRef.current) return;
+    if (!userId) return;
 
-    // Clean up previous connection
-    if (wsRef.current) {
-      wsRef.current.removeEventListener('message', handleMessage);
-      disconnectWebSocket();
-    }
+    // Create socket connection
+    socketRef.current = io('/', {
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
 
-    userIdRef.current = userId;
+    const socket = socketRef.current;
 
-    // Connect to WebSocket
-    connectWebSocket(userId);
-    const existingWs = getWebSocket();
-    
-    if (existingWs) {
-      wsRef.current = existingWs;
-      wsRef.current.addEventListener('message', handleMessage);
-    }
+    // Join user room
+    socket.emit('join_user', userId);
 
-    // Cleanup on unmount
+    // Handle connection events
+    socket.on('connected', (data) => {
+      console.log('WebSocket connected:', data);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('WebSocket disconnected');
+    });
+
+    socket.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+
+    // Handle incoming messages
+    socket.on('message', (message) => {
+      const listeners = listenersRef.current.get('message') || [];
+      listeners.forEach(listener => listener(message));
+    });
+
+    socket.on('session_status', (status) => {
+      const listeners = listenersRef.current.get('session_status') || [];
+      listeners.forEach(listener => listener(status));
+    });
+
     return () => {
-      if (wsRef.current) {
-        wsRef.current.removeEventListener('message', handleMessage);
-      }
-      disconnectWebSocket();
-      userIdRef.current = null;
-      messageHandlers.current.clear();
+      socket.disconnect();
+      socketRef.current = null;
+      listenersRef.current.clear();
     };
-  }, [userId, handleMessage]);
+  }, [userId]);
 
-  const isConnected = wsRef.current?.readyState === WebSocket.OPEN;
+  const onMessage = useCallback((event: string, callback: Function) => {
+    const listeners = listenersRef.current.get(event) || [];
+    listeners.push(callback);
+    listenersRef.current.set(event, listeners);
 
-  // Always return the same interface structure
+    return () => {
+      const currentListeners = listenersRef.current.get(event) || [];
+      const index = currentListeners.indexOf(callback);
+      if (index > -1) {
+        currentListeners.splice(index, 1);
+        listenersRef.current.set(event, currentListeners);
+      }
+    };
+  }, []);
+
+  const offMessage = useCallback((event: string, callback: Function) => {
+    const listeners = listenersRef.current.get(event) || [];
+    const index = listeners.indexOf(callback);
+    if (index > -1) {
+      listeners.splice(index, 1);
+      listenersRef.current.set(event, listeners);
+    }
+  }, []);
+
+  const emit = useCallback((event: string, data: any) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(event, data);
+    }
+  }, []);
+
   return {
     onMessage,
     offMessage,
-    sendMessage,
-    isConnected
+    emit,
+    connected: socketRef.current?.connected || false,
   };
-};
+}

@@ -1,145 +1,93 @@
-// Campaign types
-export interface Campaign {
-  id: number;
-  userId: number;
-  name: string;
-  status: 'draft' | 'active' | 'paused' | 'completed' | 'stopped';
-  targetInvitations: number;
-  dailyLimit: number;
-  invitationTemplate: string;
-  humanLikeDelays: boolean;
-  aiOptimization: boolean;
-  filters: any;
-  sentCount: number;
-  responseCount: number;
-  conversionCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
+// Import types from the shared schema
+export type {
+  User,
+  InsertUser,
+  Campaign,
+  InsertCampaign,
+  Creator,
+  InsertCreator,
+  CampaignInvitation,
+  InsertCampaignInvitation,
+  BrowserSession,
+  InsertBrowserSession,
+  ActivityLog,
+  InsertActivityLog,
+} from "@shared/sqlite-schema";
 
-export interface CreateCampaignData {
-  userId: number;
-  name: string;
-  targetInvitations: number;
-  dailyLimit: number;
-  invitationTemplate: string;
-  humanLikeDelays?: boolean;
-  aiOptimization?: boolean;
-  filters?: any;
-}
-
-// Creator types
-export interface Creator {
-  id: number;
-  username: string;
-  displayName: string | null;
-  followers: number | null;
-  category: string | null;
-  engagementRate: string | null;
-  gmv: string | null;
-  profileData: any;
-  lastUpdated: string;
-  createdAt: string;
-}
-
-export interface CreatorFilters {
-  category?: string;
-  minFollowers?: number;
-  maxFollowers?: number;
-  minGMV?: number;
-  maxGMV?: number;
-  engagementRate?: string;
-}
-
-// Campaign Invitation types
-export interface CampaignInvitation {
-  id: number;
-  campaignId: number;
-  creatorId: number;
-  status: 'pending' | 'sent' | 'responded' | 'failed' | 'skipped';
-  invitationText: string | null;
-  sentAt: string | null;
-  respondedAt: string | null;
-  responseText: string | null;
-  errorMessage: string | null;
-  retryCount: number;
-  createdAt: string;
-}
-
-// Activity Log types
-export interface ActivityLog {
-  id: number;
-  userId: number;
-  campaignId: number | null;
-  type: string;
-  message: string;
-  metadata: any;
-  timestamp: string;
-}
-
-// Browser Session types
-export interface BrowserSession {
-  id: number;
-  userId: number;
-  sessionData: any;
-  isActive: boolean;
-  lastActivity: string;
-  expiresAt: string | null;
-  createdAt: string;
-}
-
-// Dashboard Stats types
+// Dashboard specific types
 export interface DashboardStats {
   activeCampaigns: number;
   creatorsContacted: number;
   responseRate: number;
   totalGMV: number;
+  totalSpent: number;
+  conversionRate: number;
 }
 
-// Campaign Stats types
+// Campaign creation data
+export interface CreateCampaignData {
+  name: string;
+  targetInvitations: number;
+  dailyLimit: number;
+  invitationTemplate: string;
+  status?: string;
+  humanLikeDelays?: boolean;
+  aiOptimization?: boolean;
+  filters?: any;
+}
+
+// Campaign stats
 export interface CampaignStats {
-  sent: number;
-  responses: number;
-  pending: number;
+  sentCount: number;
+  responseCount: number;
+  conversionCount: number;
   responseRate: number;
+  conversionRate: number;
+  totalSpent: number;
+  averageResponseTime: number;
+}
+
+// Real-time activity
+export interface ActivityItem {
+  id: number;
+  userId: number;
+  action: string;
+  details: string;
+  timestamp: Date;
+  status?: string;
 }
 
 // WebSocket message types
 export interface WebSocketMessage {
   type: string;
-  data?: any;
-  campaign?: number;
-  creator?: Creator;
-  session?: BrowserSession;
+  data: any;
+  timestamp: Date;
 }
 
-// Rate Limit types
-export interface RateLimits {
-  hourly: number;
-  daily: number;
-  resetTimes: {
-    hourly: number;
-    daily: number;
-  };
+// Creator filters
+export interface CreatorFilters {
+  category?: string;
+  minFollowers?: number;
+  maxFollowers?: number;
+  minEngagement?: number;
+  maxEngagement?: number;
+  location?: string;
+  verified?: boolean;
 }
 
-// Automation Status types
-export interface AutomationStatus {
-  isActive: boolean;
-  currentCampaign?: Campaign;
-  rateLimits: RateLimits;
-  performance: {
-    successRate: number;
-    avgResponseTime: string;
-  };
+// API Response types
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
-// Notification types
-export interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  read: boolean;
-  createdAt: string;
-  type?: string;
+// Pagination
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 }

@@ -69,7 +69,8 @@ export class AutomationTester {
     const testUser = await storage.createUser({
       username: 'test-user',
       email: 'test@example.com',
-      createdAt: new Date()
+      passwordHash: 'test-hash',
+      fullName: 'Test User'
     });
 
     const retrievedUser = await storage.getUser(testUser.id);
@@ -81,13 +82,9 @@ export class AutomationTester {
     const testCreator = await storage.createCreator({
       username: 'test-creator',
       displayName: 'Test Creator',
-      followerCount: 1000,
-      averageViews: 5000,
-      engagementRate: 3.5,
+      followers: 1000,
       category: 'lifestyle',
-      isVerified: false,
-      lastActive: new Date(),
-      bio: 'Test creator bio'
+      engagementRate: '3.5'
     });
 
     const retrievedCreator = await storage.getCreator(testCreator.id);
@@ -152,7 +149,8 @@ export class AutomationTester {
     const testUser = await storage.createUser({
       username: 'campaign-test-user',
       email: 'campaign-test@example.com',
-      createdAt: new Date()
+      passwordHash: 'test-hash',
+      fullName: 'Campaign Test User'
     });
 
     try {
@@ -160,12 +158,9 @@ export class AutomationTester {
       const testCampaign = await storage.createCampaign({
         userId: testUser.id,
         name: 'Test Campaign',
-        description: 'Test campaign description',
-        budget: 1000,
-        targetAudience: 'test audience',
-        productInfo: 'test product',
-        goals: 'test goals',
-        timeline: 'test timeline',
+        targetInvitations: 100,
+        dailyLimit: 20,
+        invitationTemplate: 'Hello {name}, we would like to collaborate with you!',
         status: 'draft'
       });
 

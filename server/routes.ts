@@ -1,7 +1,7 @@
 
 import { Express } from "express";
 import { storage } from "./storage";
-import { insertCampaignSchema, insertCampaignInvitationSchema } from "../shared/schema";
+import { insertCampaignSchema, insertCampaignInvitationSchema } from "../shared/sqlite-schema";
 import { aiModelManager } from "./ai/ai-model-manager";
 import { aiService } from "./automation/ai-service";
 import { generateAnalyticsOverview } from "./storage";

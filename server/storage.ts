@@ -17,13 +17,14 @@ import {
   type InsertBrowserSession,
   type ActivityLog,
   type InsertActivityLog,
-} from "@shared/schema";
+} from "../shared/sqlite-schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Users
   getUser(id: number): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserTikTokSession(userId: number, sessionData: any): Promise<void>;
@@ -40,7 +41,7 @@ export interface IStorage {
     filters?: any,
     limit?: number,
     offset?: number,
-  ): Promise<Creator[]>;
+  ): Promise<{ creators: Creator[]; total: number }>;
   getCreator(id: number): Promise<Creator | undefined>;
   getCreatorByUsername(username: string): Promise<Creator | undefined>;
   createCreator(creator: InsertCreator): Promise<Creator>;
@@ -103,6 +104,10 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
