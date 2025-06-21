@@ -757,8 +757,7 @@ export class PuppeteerAutomation {
       }
     }
     return true;
-  }
-
+  
     } catch (error) {
       console.error('Cleanup error:', error);
     }
