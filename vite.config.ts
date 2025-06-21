@@ -37,5 +37,7 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    host: '0.0.0.0', // Ensure the server listens on all interfaces
+    port: 5000, // Recommended port for Replit
   },
 });
