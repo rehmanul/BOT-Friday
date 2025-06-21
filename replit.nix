@@ -1,6 +1,7 @@
 
 { pkgs }: {
   deps = [
+    pkgs.gh
     pkgs.chromium
     pkgs.glib
     pkgs.nss
