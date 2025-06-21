@@ -1,15 +1,16 @@
 import fetch from 'node-fetch';
 
-const TIKTOK_APP_ID = process.env.TIKTOK_APP_ID;
-const TIKTOK_APP_SECRET = process.env.TIKTOK_APP_SECRET;
+const TIKTOK_APP_ID = process.env.TIKTOK_APP_ID || '7512649815700963329';
+const TIKTOK_APP_SECRET = process.env.TIKTOK_APP_SECRET || 'e448a875d92832486230db13be28db0444035303';
 const TIKTOK_REDIRECT_URI = process.env.REPLIT_DOMAINS ? 
   `https://${process.env.REPLIT_DOMAINS.split(',')[0]}/api/auth/tiktok/callback` : 
-  'http://localhost:5000/api/auth/tiktok/callback';
+  'https://11b0ef4e-37b9-4e43-b34e-8ecadadb92e9-00-39k23re3ie3qw.spock.replit.dev/api/auth/tiktok/callback';
 
 export class TikTokAPI {
-  private baseURL = 'https://business-api.tiktok.com/open_api/v1.3';
+  private baseURL = 'https://sandbox-ads.tiktok.com/open_api/v1.3'; // Using sandbox for development
   private authURL = 'https://business-api.tiktok.com/portal/auth';
   private accessToken: string | null = null;
+  private advertiserId = '7518497603106078728'; // Your sandbox advertiser ID
 
   // Generate authorization URL for TikTok Business API
   getAuthorizationURL(state?: string): string {
@@ -79,7 +80,17 @@ export class TikTokAPI {
 
   // Get advertiser info
   async getAdvertiserInfo(): Promise<any> {
-    return this.makeAPICall('/advertiser/info/');
+    return this.makeAPICall('/advertiser/info/', {
+      advertiser_ids: [this.advertiserId]
+    });
+  }
+
+  // Get sandbox access token
+  async generateSandboxToken(): Promise<string> {
+    // For sandbox environment, you can generate tokens directly from the dashboard
+    // This method would be used to refresh or validate existing tokens
+    console.log('Sandbox Token Generation: Use TikTok Business Manager to generate tokens');
+    return 'sandbox_token_placeholder';
   }
 
   // Get account balance
@@ -164,18 +175,18 @@ export class TikTokAPI {
 
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: data ? 'POST' : 'GET',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Access-Token': this.accessToken
         },
-        body: data ? JSON.stringify(data) : undefined
+        body: JSON.stringify(data || {})
       });
 
       const result = await response.json() as any;
 
       if (result.code === 40105) {
-        throw new Error('TikTok access token is invalid or expired');
+        throw new Error('TikTok access token is invalid or expired. Generate new token from sandbox.');
       }
 
       if (result.code !== 0) {

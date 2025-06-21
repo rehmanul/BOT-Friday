@@ -99,11 +99,13 @@ export async function registerRoutes(app: Express) {
     
     let isValid = false;
     let errorMessage = null;
+    let scopeIssue = false;
     
     try {
       isValid = await tiktokAPI.validateToken();
     } catch (error) {
       errorMessage = error.message;
+      scopeIssue = error.message.includes('scope') || error.message.includes('permission');
     }
     
     res.json({
@@ -111,9 +113,15 @@ export async function registerRoutes(app: Express) {
       hasToken: hasStoredToken || !!envToken,
       needsAuth: !isValid,
       error: errorMessage,
+      scopeIssue: scopeIssue,
       tokenStatus: envToken ? 'environment' : hasStoredToken ? 'database' : 'none',
-      authURL: !isValid && process.env.TIKTOK_APP_ID ? tiktokAPI.getAuthorizationURL() : null,
-      apiType: 'TikTok Business API'
+      authURL: !isValid ? tiktokAPI.getAuthorizationURL() : null,
+      apiType: 'TikTok Sandbox API',
+      advertiserId: '7518497603106078728',
+      appId: '7512649815700963329',
+      sandboxMode: true,
+      requiredScopes: ['Ad Account Management', 'Ads Management', 'Audience Management', 'Reporting'],
+      tokenGenerationUrl: 'https://business-api.tiktok.com'
     });
   }));
 
