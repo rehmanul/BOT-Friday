@@ -91,22 +91,20 @@ app.use((req, res, next) => {
   const { createServer } = await import('http');
   const server = createServer(app);
 
-  // Error handling middleware (must be last)
-  app.use(errorHandler);
-
-  // 404 handler
-  app.use((req, res) => {
-    throw new AppError(`Route ${req.method} ${req.path} not found`, 404, 'routing');
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Setup frontend serving before error handlers
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
+
+  // 404 handler for API routes only
+  app.use('/api/*', (req, res) => {
+    throw new AppError(`Route ${req.method} ${req.path} not found`, 404, 'routing');
+  });
+
+  // Error handling middleware (must be last)
+  app.use(errorHandler);
 
   // Use PORT environment variable for deployment platforms like Render
   // Fall back to 5000 for local development

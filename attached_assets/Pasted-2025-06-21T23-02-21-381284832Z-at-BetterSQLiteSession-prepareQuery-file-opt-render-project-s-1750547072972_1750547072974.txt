@@ -1,0 +1,50 @@
+2025-06-21T23:02:21.381284832Z     at BetterSQLiteSession.prepareQuery (file:///opt/render/project/src/node_modules/drizzle-orm/better-sqlite3/session.js:20:30)
+2025-06-21T23:02:21.381289223Z     at BetterSQLiteSession.prepareOneTimeQuery (file:///opt/render/project/src/node_modules/drizzle-orm/sqlite-core/session.js:65:17)
+2025-06-21T23:02:21.381293363Z     at SQLiteSelectBase._prepare (file:///opt/render/project/src/node_modules/drizzle-orm/sqlite-core/query-builders/select.js:572:88)
+2025-06-21T23:02:21.381297423Z     at SQLiteSelectBase.all (file:///opt/render/project/src/node_modules/drizzle-orm/sqlite-core/query-builders/select.js:588:17)
+2025-06-21T23:02:21.381301593Z     at SQLiteSelectBase.execute (file:///opt/render/project/src/node_modules/drizzle-orm/sqlite-core/query-builders/select.js:597:17)
+2025-06-21T23:02:21.381305633Z     at SQLiteSelectBase.then (file:///opt/render/project/src/node_modules/drizzle-orm/query-promise.js:21:17) {
+2025-06-21T23:02:21.381310133Z   code: 'SQLITE_ERROR'
+2025-06-21T23:02:21.381314433Z }
+2025-06-21T23:02:23.585390487Z [2025-06-21T23:02:23.585Z] INFO: Server started successfully on port 10000 (server)
+2025-06-21T23:02:26.56936653Z ==> Your service is live 🎉
+2025-06-21T23:02:26.60369829Z ==> 
+2025-06-21T23:02:26.635177549Z ==> ///////////////////////////////////////////////////////////
+2025-06-21T23:02:26.666717769Z ==> 
+2025-06-21T23:02:26.698108369Z ==> Available at your primary URL https://bot-friday.onrender.com
+2025-06-21T23:02:26.729536538Z ==> 
+2025-06-21T23:02:26.760965909Z ==> ///////////////////////////////////////////////////////////
+2025-06-21T23:02:41.082136954Z Error: Route GET / not found
+2025-06-21T23:02:41.082160715Z     at file:///opt/render/project/src/dist/index.js:3492:11
+2025-06-21T23:02:41.082183475Z     at Layer.handle [as handle_request] (/opt/render/project/src/node_modules/express/lib/router/layer.js:95:5)
+2025-06-21T23:02:41.082189476Z     at trim_prefix (/opt/render/project/src/node_modules/express/lib/router/index.js:328:13)
+2025-06-21T23:02:41.082194316Z     at /opt/render/project/src/node_modules/express/lib/router/index.js:286:9
+2025-06-21T23:02:41.082197976Z     at Function.process_params (/opt/render/project/src/node_modules/express/lib/router/index.js:346:12)
+2025-06-21T23:02:41.082201466Z     at next (/opt/render/project/src/node_modules/express/lib/router/index.js:280:10)
+2025-06-21T23:02:41.082205106Z     at Layer.handle [as handle_request] (/opt/render/project/src/node_modules/express/lib/router/layer.js:91:12)
+2025-06-21T23:02:41.082208606Z     at trim_prefix (/opt/render/project/src/node_modules/express/lib/router/index.js:328:13)
+2025-06-21T23:02:41.082212016Z     at /opt/render/project/src/node_modules/express/lib/router/index.js:286:9
+2025-06-21T23:02:41.082215506Z     at Function.process_params (/opt/render/project/src/node_modules/express/lib/router/index.js:346:12)
+2025-06-21T23:02:41.18011574Z Failed to initialize Puppeteer session: Error: Could not find Chrome (ver. 137.0.7151.119). This can occur if either
+2025-06-21T23:02:41.18013748Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-06-21T23:02:41.180143211Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-06-21T23:02:41.180199402Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-06-21T23:02:41.180209302Z     at ChromeLauncher.resolveExecutablePath (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:308:27)
+2025-06-21T23:02:41.180212322Z     at ChromeLauncher.computeLaunchArguments (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:93:24)
+2025-06-21T23:02:41.180215752Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:84:39)
+2025-06-21T23:02:41.180218432Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:45:22)
+2025-06-21T23:02:41.180221202Z     at PuppeteerNode.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/PuppeteerNode.js:143:31)
+2025-06-21T23:02:41.180224492Z Automation features will be disabled until Chrome is available
+2025-06-21T23:02:41.180224702Z     at PuppeteerExtra.launch (/opt/render/project/src/node_modules/puppeteer-extra/dist/index.cjs.js:128:41)
+2025-06-21T23:02:41.180227722Z     at async PuppeteerAutomation.initializeSession (file:///opt/render/project/src/dist/index.js:2700:22)
+2025-06-21T23:04:20.494389242Z Error: Route GET / not found
+2025-06-21T23:04:20.494415842Z     at file:///opt/render/project/src/dist/index.js:3492:11
+2025-06-21T23:04:20.494422462Z     at Layer.handle [as handle_request] (/opt/render/project/src/node_modules/express/lib/router/layer.js:95:5)
+2025-06-21T23:04:20.494428513Z     at trim_prefix (/opt/render/project/src/node_modules/express/lib/router/index.js:328:13)
+2025-06-21T23:04:20.494434493Z     at /opt/render/project/src/node_modules/express/lib/router/index.js:286:9
+2025-06-21T23:04:20.494439323Z     at Function.process_params (/opt/render/project/src/node_modules/express/lib/router/index.js:346:12)
+2025-06-21T23:04:20.494444293Z     at next (/opt/render/project/src/node_modules/express/lib/router/index.js:280:10)
+2025-06-21T23:04:20.494449213Z     at Layer.handle [as handle_request] (/opt/render/project/src/node_modules/express/lib/router/layer.js:91:12)
+2025-06-21T23:04:20.494454453Z     at trim_prefix (/opt/render/project/src/node_modules/express/lib/router/index.js:328:13)
+2025-06-21T23:04:20.494460133Z     at /opt/render/project/src/node_modules/express/lib/router/index.js:286:9
+2025-06-21T23:04:20.494465734Z     at Function.process_params (/opt/render/project/src/node_modules/express/lib/router/index.js:346:12)
