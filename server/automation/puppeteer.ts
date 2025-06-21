@@ -307,14 +307,7 @@ export class PuppeteerAutomation {
       return profileData;
     } catch (error) {
       console.error('Profile extraction error:', error);
-      return {
-        username: 'digi4u_repair',
-        displayName: 'Digi4u Repair UK',
-        avatar: 'https://via.placeholder.com/40',
-        verified: true,
-        followers: 15420,
-        isActive: true
-      };
+      throw error;
     }
   }
 
@@ -395,6 +388,7 @@ export class PuppeteerAutomation {
       const cookies = await this.page.cookies();
       const authCookies = cookies.filter(cookie => 
         cookie.name.includes('sessionid') || 
+        cookie.name.includes('sessionid_') ||
         cookie.name.includes('sessionid_') ||
         cookie.name.includes('sid_tt') ||
         cookie.name.includes('passport_auth_token')

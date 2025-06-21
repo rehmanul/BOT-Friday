@@ -10,11 +10,11 @@ interface EnvironmentConfig {
 }
 
 const envConfig: EnvironmentConfig = {
-  required: [
-    // Commented out for development - uncomment for production
-    // 'TIKTOK_APP_ID',
-    // 'TIKTOK_APP_SECRET'
-  ],
+  required: process.env.NODE_ENV === 'production' ? [
+    'TIKTOK_APP_ID',
+    'TIKTOK_APP_SECRET',
+    'API_KEY'
+  ] : [],
   optional: {
     'NODE_ENV': 'development',
     'LOG_LEVEL': '2',
@@ -22,11 +22,11 @@ const envConfig: EnvironmentConfig = {
     'TIKTOK_DAILY_LIMIT': '200',
     'TIKTOK_WEEKLY_LIMIT': '1000',
     'MIN_REQUEST_DELAY_MS': '120000',
-    'API_KEY': 'dev-api-key',
+    'API_KEY': process.env.NODE_ENV === 'production' ? undefined : 'dev-api-key',
     'GEMINI_API_KEY': '',
     'PERPLEXITY_API_KEY': '',
-    'TIKTOK_APP_ID': 'dev-app-id',
-    'TIKTOK_APP_SECRET': 'dev-app-secret'
+    'TIKTOK_APP_ID': process.env.NODE_ENV === 'production' ? undefined : 'dev-app-id',
+    'TIKTOK_APP_SECRET': process.env.NODE_ENV === 'production' ? undefined : 'dev-app-secret'
   },
   sensitive: [
     'GEMINI_API_KEY',
