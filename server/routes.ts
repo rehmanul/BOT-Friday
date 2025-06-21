@@ -44,6 +44,79 @@ const paginationSchema = z.object({
 });
 
 export async function registerRoutes(app: Express) {
+  // TikTok OAuth endpoints
+  app.get("/api/auth/tiktok", asyncHandler(async (req, res) => {
+    const { tiktokAPI } = await import('./api/tiktok-api');
+    const authURL = tiktokAPI.getAuthorizationURL();
+    res.json({ authURL });
+  }));
+
+  app.get("/api/auth/tiktok/callback", asyncHandler(async (req, res) => {
+    const { code, state } = req.query;
+    if (!code) {
+      throw new AppError('Authorization code not provided', 400);
+    }
+
+    try {
+      const { tiktokAPI } = await import('./api/tiktok-api');
+      const tokenData = await tiktokAPI.exchangeCodeForToken(code as string);
+      
+      // Store tokens in database for user (assuming user ID 1 for demo)
+      await storage.storeTikTokTokens(1, {
+        accessToken: tokenData.access_token,
+        refreshToken: '', // TikTok doesn't provide refresh tokens in some flows
+        expiresAt: new Date(Date.now() + (tokenData.expires_in * 1000)),
+        refreshExpiresAt: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000))
+      });
+
+      tiktokAPI.setAccessToken(tokenData.access_token);
+      
+      res.json({ 
+        success: true, 
+        message: 'TikTok account connected successfully',
+        expiresAt: new Date(Date.now() + (tokenData.expires_in * 1000))
+      });
+    } catch (error) {
+      logger.error('TikTok OAuth callback error', 'auth', undefined, { error: error.message });
+      throw new AppError('Failed to connect TikTok account', 500);
+    }
+  }));
+
+  app.get("/api/tiktok/status", asyncHandler(async (req, res) => {
+    const { tiktokAPI } = await import('./api/tiktok-api');
+    
+    // Check if we have stored tokens
+    const tokens = await storage.getTikTokTokens(1);
+    const hasStoredToken = !!tokens?.accessToken;
+    
+    // Set token from environment if available
+    const envToken = process.env.TIKTOK_ACCESS_TOKEN;
+    if (envToken && !hasStoredToken) {
+      tiktokAPI.setAccessToken(envToken);
+    } else if (hasStoredToken) {
+      tiktokAPI.setAccessToken(tokens.accessToken);
+    }
+    
+    let isValid = false;
+    let errorMessage = null;
+    
+    try {
+      isValid = await tiktokAPI.validateToken();
+    } catch (error) {
+      errorMessage = error.message;
+    }
+    
+    res.json({
+      connected: isValid,
+      hasToken: hasStoredToken || !!envToken,
+      needsAuth: !isValid,
+      error: errorMessage,
+      tokenStatus: envToken ? 'environment' : hasStoredToken ? 'database' : 'none',
+      authURL: !isValid && process.env.TIKTOK_APP_ID ? tiktokAPI.getAuthorizationURL() : null,
+      apiType: 'TikTok Business API'
+    });
+  }));
+
   // Testing endpoint (development only)
   if (process.env.NODE_ENV === 'development') {
     app.get("/api/test/automation", asyncHandler(async (req, res) => {

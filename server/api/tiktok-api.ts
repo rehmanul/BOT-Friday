@@ -1,8 +1,10 @@
 import fetch from 'node-fetch';
 
-const TIKTOK_APP_ID = process.env.TIKTOK_APP_ID || '7512649815700963329';
-const TIKTOK_APP_SECRET = process.env.TIKTOK_APP_SECRET || 'e448a875d92832486230db13be28db0444035303';
-const TIKTOK_REDIRECT_URI = process.env.TIKTOK_REDIRECT_URI || 'https://your-repl-name.your-username.repl.co/api/auth/tiktok/callback';
+const TIKTOK_APP_ID = process.env.TIKTOK_APP_ID;
+const TIKTOK_APP_SECRET = process.env.TIKTOK_APP_SECRET;
+const TIKTOK_REDIRECT_URI = process.env.REPLIT_DOMAINS ? 
+  `https://${process.env.REPLIT_DOMAINS.split(',')[0]}/api/auth/tiktok/callback` : 
+  'http://localhost:5000/api/auth/tiktok/callback';
 
 export class TikTokAPI {
   private baseURL = 'https://business-api.tiktok.com/open_api/v1.3';
@@ -11,10 +13,15 @@ export class TikTokAPI {
 
   // Generate authorization URL for TikTok Business API
   getAuthorizationURL(state?: string): string {
+    if (!TIKTOK_APP_ID) {
+      throw new Error('TikTok App ID not configured');
+    }
+    
     const params = new URLSearchParams({
       app_id: TIKTOK_APP_ID,
       redirect_uri: TIKTOK_REDIRECT_URI,
-      state: state || 'auth_state'
+      state: state || 'auth_state',
+      scope: 'business_basic,advertiser_read,campaign_read,adgroup_read,ad_read'
     });
 
     return `${this.authURL}?${params.toString()}`;
@@ -56,6 +63,18 @@ export class TikTokAPI {
   // Set access token for API calls
   setAccessToken(token: string): void {
     this.accessToken = token;
+  }
+
+  // Validate current access token
+  async validateToken(): Promise<boolean> {
+    if (!this.accessToken) return false;
+    
+    try {
+      const response = await this.makeAPICall('/advertiser/info/');
+      return response.code === 0;
+    } catch (error) {
+      return false;
+    }
   }
 
   // Get advertiser info
@@ -145,18 +164,22 @@ export class TikTokAPI {
 
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, {
-        method: 'POST',
+        method: data ? 'POST' : 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Access-Token': this.accessToken
         },
-        body: JSON.stringify(data || {})
+        body: data ? JSON.stringify(data) : undefined
       });
 
       const result = await response.json() as any;
 
-      if (!response.ok) {
-        throw new Error(`TikTok API Error: ${result.message || 'Unknown error'}`);
+      if (result.code === 40105) {
+        throw new Error('TikTok access token is invalid or expired');
+      }
+
+      if (result.code !== 0) {
+        throw new Error(`TikTok API Error: ${result.message} (Code: ${result.code})`);
       }
 
       return result;

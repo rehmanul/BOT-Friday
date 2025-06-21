@@ -23,8 +23,11 @@ export function TikTokConnect({ userId, isConnected, profile, onConnect }: TikTo
   const handleConnect = async () => {
     setConnecting(true);
     try {
-      // Redirect to TikTok OAuth
-      window.location.href = `/api/auth/tiktok/${userId}`;
+      const response = await fetch('/api/auth/tiktok');
+      const data = await response.json();
+      if (data.authURL) {
+        window.location.href = data.authURL;
+      }
     } catch (error) {
       console.error('Failed to connect to TikTok:', error);
       setConnecting(false);
