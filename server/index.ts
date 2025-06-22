@@ -1,4 +1,3 @@
-
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes, setBroadcastFunction } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -13,11 +12,20 @@ const app = express();
 
 // Validate environment variables on startup
 if (!validateEnvironment()) {
-  logger.error('Environment validation failed, server will not start', 'server');
+  logger.error("Environment validation failed, server will not start", "server");
   process.exit(1);
 }
 
-logger.info('Server starting up', 'server', undefined, getEnvironmentInfo());
+// Initialize database before starting services
+try {
+  await initializeDatabase();
+  logger.info("Database initialized successfully", "server");
+} catch (error) {
+  logger.error("Failed to initialize database", "server", undefined, error);
+  process.exit(1);
+}
+
+logger.info("Server starting up", "server", undefined, getEnvironmentInfo());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
@@ -50,7 +58,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (path.startsWith("/api") || path.startsWith("/health")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      
+
       // Only log response body for errors in production
       if (capturedJsonResponse && (res.statusCode >= 400 || process.env.NODE_ENV !== 'production')) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
@@ -75,17 +83,8 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize database first
-  try {
-    await initializeDatabase();
-    logger.info('Database initialized successfully', 'server');
-  } catch (error) {
-    logger.error('Failed to initialize database', 'server', undefined, error);
-    process.exit(1);
-  }
-
   const puppeteerAutomation = new PuppeteerAutomation();
-  
+
   // Initialize Puppeteer without blocking server startup
   puppeteerAutomation.initializeSession().catch(error => {
     logger.warn('Puppeteer initialization failed, automation features disabled', 'puppeteer', undefined, error);
@@ -199,7 +198,7 @@ app.use((req, res, next) => {
         logger.info('Server closed successfully', 'server');
         process.exit(0);
       });
-      
+
       // Force exit after 10 seconds if graceful shutdown fails
       setTimeout(() => {
         logger.error('Forced shutdown after timeout', 'server');

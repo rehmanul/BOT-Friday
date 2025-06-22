@@ -1,0 +1,50 @@
+2025-06-22T02:03:52.710256335Z     at createTablesIfNotExists (file:///opt/render/project/src/dist/index.js:581:15) {
+2025-06-22T02:03:52.710259576Z   severity_local: 'ERROR',
+2025-06-22T02:03:52.710263276Z   severity: 'ERROR',
+2025-06-22T02:03:52.710266226Z   code: '42703',
+2025-06-22T02:03:52.710268936Z   file: 'indexcmds.c',
+2025-06-22T02:03:52.710271796Z   line: '1891',
+2025-06-22T02:03:52.710274476Z   routine: 'ComputeIndexAttrs'
+2025-06-22T02:03:52.710277186Z }
+2025-06-22T02:03:52.710540982Z [2025-06-22T02:03:52.710Z] ERROR: Failed to initialize database (database)
+2025-06-22T02:03:52.710745486Z PostgresError: column "tiktok_id" does not exist
+2025-06-22T02:03:52.710752306Z     at ErrorResponse (file:///opt/render/project/src/node_modules/postgres/src/connection.js:794:26)
+2025-06-22T02:03:52.710755616Z     at handle (file:///opt/render/project/src/node_modules/postgres/src/connection.js:480:6)
+2025-06-22T02:03:52.710769467Z     at TLSSocket.data (file:///opt/render/project/src/node_modules/postgres/src/connection.js:315:9)
+2025-06-22T02:03:52.710771447Z     at TLSSocket.emit (node:events:518:28)
+2025-06-22T02:03:52.710773767Z     at addChunk (node:internal/streams/readable:561:12)
+2025-06-22T02:03:52.710776027Z     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+2025-06-22T02:03:52.710777957Z     at Readable.push (node:internal/streams/readable:392:5)
+2025-06-22T02:03:52.710779727Z     at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2025-06-22T02:03:52.710781427Z     at cachedError (file:///opt/render/project/src/node_modules/postgres/src/query.js:170:23)
+2025-06-22T02:03:52.710783137Z     at new Query (file:///opt/render/project/src/node_modules/postgres/src/query.js:36:24)
+2025-06-22T02:03:52.710784777Z     at sql (file:///opt/render/project/src/node_modules/postgres/src/index.js:112:11)
+2025-06-22T02:03:52.710786417Z     at createTablesIfNotExists (file:///opt/render/project/src/dist/index.js:581:15) {
+2025-06-22T02:03:52.710788267Z   severity_local: 'ERROR',
+2025-06-22T02:03:52.710791317Z   severity: 'ERROR',
+2025-06-22T02:03:52.710794467Z   code: '42703',
+2025-06-22T02:03:52.710797327Z   file: 'indexcmds.c',
+2025-06-22T02:03:52.710800017Z   line: '1891',
+2025-06-22T02:03:52.710802777Z   routine: 'ComputeIndexAttrs'
+2025-06-22T02:03:52.710805527Z }
+2025-06-22T02:03:52.71093494Z [2025-06-22T02:03:52.710Z] ERROR: Failed to initialize database (server)
+2025-06-22T02:03:52.711078283Z PostgresError: column "tiktok_id" does not exist
+2025-06-22T02:03:52.711083583Z     at ErrorResponse (file:///opt/render/project/src/node_modules/postgres/src/connection.js:794:26)
+2025-06-22T02:03:52.711086443Z     at handle (file:///opt/render/project/src/node_modules/postgres/src/connection.js:480:6)
+2025-06-22T02:03:52.711088943Z     at TLSSocket.data (file:///opt/render/project/src/node_modules/postgres/src/connection.js:315:9)
+2025-06-22T02:03:52.711091403Z     at TLSSocket.emit (node:events:518:28)
+2025-06-22T02:03:52.711094013Z     at addChunk (node:internal/streams/readable:561:12)
+2025-06-22T02:03:52.711096794Z     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+2025-06-22T02:03:52.711099143Z     at Readable.push (node:internal/streams/readable:392:5)
+2025-06-22T02:03:52.711101623Z     at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23)
+2025-06-22T02:03:52.711104064Z     at cachedError (file:///opt/render/project/src/node_modules/postgres/src/query.js:170:23)
+2025-06-22T02:03:52.711106374Z     at new Query (file:///opt/render/project/src/node_modules/postgres/src/query.js:36:24)
+2025-06-22T02:03:52.711108674Z     at sql (file:///opt/render/project/src/node_modules/postgres/src/index.js:112:11)
+2025-06-22T02:03:52.711111064Z     at createTablesIfNotExists (file:///opt/render/project/src/dist/index.js:581:15) {
+2025-06-22T02:03:52.711113524Z   severity_local: 'ERROR',
+2025-06-22T02:03:52.711115804Z   severity: 'ERROR',
+2025-06-22T02:03:52.711117944Z   code: '42703',
+2025-06-22T02:03:52.711120014Z   file: 'indexcmds.c',
+2025-06-22T02:03:52.711122024Z   line: '1891',
+2025-06-22T02:03:52.711124164Z   routine: 'ComputeIndexAttrs'
+2025-06-22T02:03:52.711126144Z }
