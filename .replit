@@ -5,26 +5,21 @@ run = "npm run dev"
 runButton = "Development Server"
 
 [[workflows.workflow]]
-name = "Development Server"
-author = 43545023
+name = "git"
 mode = "sequential"
+author = 44113524
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npx tsx server/index.ts"
-
-[[workflows.workflow]]
-name = "Production Build"
-author = 44109602
-mode = "sequential"
+args = "git add ."
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run build"
+args = "git commit -m \"commit\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run start"
+args = "git push"
 
 [[ports]]
 localPort = 5000

@@ -1,0 +1,50 @@
+2025-06-22T01:02:31.969236267Z 
+2025-06-22T01:02:31.969239257Z Node.js v22.16.0
+2025-06-22T01:02:36.375330207Z ==> Exited with status 1
+2025-06-22T01:02:36.392353866Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-06-22T01:02:42.837563478Z ==> Running 'npm run start'
+2025-06-22T01:02:43.834987904Z 
+2025-06-22T01:02:43.835011944Z > rest-express@1.0.0 start
+2025-06-22T01:02:43.835017124Z > NODE_ENV=production node dist/index.js
+2025-06-22T01:02:43.835019725Z 
+2025-06-22T01:02:44.33262015Z node:internal/modules/package_json_reader:256
+2025-06-22T01:02:44.332637311Z   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+2025-06-22T01:02:44.332640431Z         ^
+2025-06-22T01:02:44.332643081Z 
+2025-06-22T01:02:44.332646051Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@anthropic-ai/sdk' imported from /opt/render/project/src/dist/index.js
+2025-06-22T01:02:44.332649941Z     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)
+2025-06-22T01:02:44.332652681Z     at packageResolve (node:internal/modules/esm/resolve:768:81)
+2025-06-22T01:02:44.332655171Z     at moduleResolve (node:internal/modules/esm/resolve:854:18)
+2025-06-22T01:02:44.332657671Z     at defaultResolve (node:internal/modules/esm/resolve:984:11)
+2025-06-22T01:02:44.332660231Z     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+2025-06-22T01:02:44.332675402Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+2025-06-22T01:02:44.332678162Z     at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+2025-06-22T01:02:44.332680902Z     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+2025-06-22T01:02:44.332684062Z     at ModuleJob._link (node:internal/modules/esm/module_job:137:49) {
+2025-06-22T01:02:44.332687132Z   code: 'ERR_MODULE_NOT_FOUND'
+2025-06-22T01:02:44.332689652Z }
+2025-06-22T01:02:44.332691732Z 
+2025-06-22T01:02:44.332693952Z Node.js v22.16.0
+2025-06-22T01:03:06.465544794Z ==> Running 'npm run start'
+2025-06-22T01:03:07.371093673Z 
+2025-06-22T01:03:07.371118224Z > rest-express@1.0.0 start
+2025-06-22T01:03:07.371122934Z > NODE_ENV=production node dist/index.js
+2025-06-22T01:03:07.371125424Z 
+2025-06-22T01:03:07.867270242Z node:internal/modules/package_json_reader:256
+2025-06-22T01:03:07.867386484Z   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+2025-06-22T01:03:07.867390304Z         ^
+2025-06-22T01:03:07.867392714Z 
+2025-06-22T01:03:07.867396094Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@anthropic-ai/sdk' imported from /opt/render/project/src/dist/index.js
+2025-06-22T01:03:07.867400794Z     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)
+2025-06-22T01:03:07.867404265Z     at packageResolve (node:internal/modules/esm/resolve:768:81)
+2025-06-22T01:03:07.867407185Z     at moduleResolve (node:internal/modules/esm/resolve:854:18)
+2025-06-22T01:03:07.867409545Z     at defaultResolve (node:internal/modules/esm/resolve:984:11)
+2025-06-22T01:03:07.867412415Z     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+2025-06-22T01:03:07.867415335Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+2025-06-22T01:03:07.867417895Z     at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+2025-06-22T01:03:07.867420425Z     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+2025-06-22T01:03:07.867422985Z     at ModuleJob._link (node:internal/modules/esm/module_job:137:49) {
+2025-06-22T01:03:07.867426245Z   code: 'ERR_MODULE_NOT_FOUND'
+2025-06-22T01:03:07.867428865Z }
+2025-06-22T01:03:07.867431195Z 
+2025-06-22T01:03:07.867433935Z Node.js v22.16.0
