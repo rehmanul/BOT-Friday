@@ -1,0 +1,50 @@
+2025-06-22T00:11:05.151374662Z ==> Deploying...
+2025-06-22T00:11:30.115242722Z > rest-express@1.0.0 start
+2025-06-22T00:11:30.115249982Z > NODE_ENV=production node dist/index.js
+2025-06-22T00:11:30.115253882Z 
+2025-06-22T00:11:42.008907371Z Connecting to PostgreSQL database...
+2025-06-22T00:11:42.018123564Z Missing API keys: ANTHROPIC_API_KEY, OPENAI_API_KEY. Some AI features will be unavailable.
+2025-06-22T00:11:42.021162649Z [2025-06-22T00:11:42.020Z] INFO: Rate limiter initialized (rate-limiter)
+2025-06-22T00:11:42.113391183Z [2025-06-22T00:11:42.112Z] INFO: Environment validation completed (env-validator)
+2025-06-22T00:11:42.113691155Z [2025-06-22T00:11:42.113Z] INFO: Server starting up (server)
+2025-06-22T00:11:42.308390859Z [2025-06-22T00:11:42.308Z] INFO: Setting up static file serving for production (server)
+2025-06-22T00:11:42.413459804Z 12:11:42 AM [express] ✅ Static files served from /opt/render/project/src/dist/public
+2025-06-22T00:11:43.105914375Z [2025-06-22T00:11:43.105Z] INFO: Server started successfully on port 10000 (server)
+2025-06-22T00:11:44.609106519Z Error fetching active browser session: PostgresError: relation "browser_sessions" does not exist
+2025-06-22T00:11:44.609157563Z     at ErrorResponse (file:///opt/render/project/src/node_modules/postgres/src/connection.js:794:26)
+2025-06-22T00:11:44.609164103Z     at handle (file:///opt/render/project/src/node_modules/postgres/src/connection.js:480:6)
+2025-06-22T00:11:44.609168894Z     at Socket.data (file:///opt/render/project/src/node_modules/postgres/src/connection.js:315:9)
+2025-06-22T00:11:44.609174234Z     at Socket.emit (node:events:518:28)
+2025-06-22T00:11:44.609178985Z     at addChunk (node:internal/streams/readable:561:12)
+2025-06-22T00:11:44.609183385Z     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+2025-06-22T00:11:44.609187185Z     at Readable.push (node:internal/streams/readable:392:5)
+2025-06-22T00:11:44.609190945Z     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2025-06-22T00:11:44.609195215Z   severity_local: 'ERROR',
+2025-06-22T00:11:44.609199306Z   severity: 'ERROR',
+2025-06-22T00:11:44.609202906Z   code: '42P01',
+2025-06-22T00:11:44.609206646Z   position: '103',
+2025-06-22T00:11:44.609210367Z   file: 'parse_relation.c',
+2025-06-22T00:11:44.609214137Z   line: '1449',
+2025-06-22T00:11:44.609229948Z   routine: 'parserOpenTable'
+2025-06-22T00:11:44.609234028Z }
+2025-06-22T00:11:46.48914456Z ==> Your service is live 🎉
+2025-06-22T00:11:46.52001644Z ==> 
+2025-06-22T00:11:46.54657849Z ==> ///////////////////////////////////////////////////////////
+2025-06-22T00:11:46.573315959Z ==> 
+2025-06-22T00:11:46.600147029Z ==> Available at your primary URL https://bot-friday.onrender.com
+2025-06-22T00:11:46.626961939Z ==> 
+2025-06-22T00:11:46.654641739Z ==> ///////////////////////////////////////////////////////////
+2025-06-22T00:12:01.717099759Z Failed to initialize Puppeteer session: Error: Could not find Chrome (ver. 137.0.7151.119). This can occur if either
+2025-06-22T00:12:01.717123741Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-06-22T00:12:01.717128932Z Automation features will be disabled until Chrome is available
+2025-06-22T00:12:01.717129341Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-06-22T00:12:01.717134092Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-06-22T00:12:01.717140162Z     at ChromeLauncher.resolveExecutablePath (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:308:27)
+2025-06-22T00:12:01.717144302Z     at ChromeLauncher.computeLaunchArguments (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:93:24)
+2025-06-22T00:12:01.717183655Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:84:39)
+2025-06-22T00:12:01.717189366Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:45:22)
+2025-06-22T00:12:01.717209067Z     at PuppeteerNode.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/PuppeteerNode.js:143:31)
+2025-06-22T00:12:01.717213027Z     at PuppeteerExtra.launch (/opt/render/project/src/node_modules/puppeteer-extra/dist/index.cjs.js:128:41)
+2025-06-22T00:12:01.717215968Z     at async PuppeteerAutomation.initializeSession (file:///opt/render/project/src/dist/index.js:2903:22)
+2025-06-22T00:16:53.218697481Z ==> Detected service running on port 10000
+2025-06-22T00:16:53.322345414Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
