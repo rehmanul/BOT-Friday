@@ -26,7 +26,7 @@ export class AIModelManager {
     if (!process.env.OPENAI_API_KEY) missingKeys.push('OPENAI_API_KEY');
     if (!process.env.GEMINI_API_KEY) missingKeys.push('GEMINI_API_KEY');
     if (!process.env.PERPLEXITY_API_KEY) missingKeys.push('PERPLEXITY_API_KEY');
-    
+
     if (missingKeys.length > 0) {
       console.warn(`Missing API keys: ${missingKeys.join(', ')}. Some AI features will be unavailable.`);
     }
@@ -55,18 +55,11 @@ export class AIModelManager {
   getAvailableModels(): AIModel[] {
     return [
       {
-        id: 'anthropic-claude-sonnet-4',
-        name: 'Claude Sonnet 4.0',
-        provider: 'Anthropic',
-        isConfigured: !!this.anthropic,
-        capabilities: ['Content Generation', 'Creator Analysis', 'Campaign Optimization']
-      },
-      {
-        id: 'openai-gpt-4o',
-        name: 'GPT-4o',
-        provider: 'OpenAI',
-        isConfigured: !!this.openai,
-        capabilities: ['Content Generation', 'Image Analysis', 'Creator Insights']
+        id: 'gemini-pro',
+        name: 'Gemini Pro',
+        provider: 'Google',
+        isConfigured: !!this.geminiApiKey,
+        capabilities: ['Creator Discovery', 'Content Analysis', 'Performance Prediction']
       },
       {
         id: 'perplexity-sonar',
@@ -74,13 +67,6 @@ export class AIModelManager {
         provider: 'Perplexity',
         isConfigured: !!this.perplexityApiKey,
         capabilities: ['Real-time Search', 'Trend Analysis', 'Market Research']
-      },
-      {
-        id: 'gemini-pro',
-        name: 'Gemini Pro',
-        provider: 'Google',
-        isConfigured: !!this.geminiApiKey,
-        capabilities: ['Creator Discovery', 'Content Analysis', 'Performance Prediction']
       }
     ];
   }
