@@ -7,6 +7,7 @@ import { errorHandler, AppError } from "./middleware/error-handler";
 import { logger } from "./utils/logger";
 import { validateEnvironment, getEnvironmentInfo } from "./utils/env-validator";
 import { healthCheckHandler } from "./middleware/health-check";
+import { initializeDatabase } from "./db";
 
 const app = express();
 
@@ -74,6 +75,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize database first
+  try {
+    await initializeDatabase();
+    logger.info('Database initialized successfully', 'server');
+  } catch (error) {
+    logger.error('Failed to initialize database', 'server', undefined, error);
+    process.exit(1);
+  }
+
   const puppeteerAutomation = new PuppeteerAutomation();
   
   // Initialize Puppeteer without blocking server startup
