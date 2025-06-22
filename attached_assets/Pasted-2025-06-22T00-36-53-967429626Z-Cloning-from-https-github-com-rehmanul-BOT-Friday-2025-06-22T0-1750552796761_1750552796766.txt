@@ -1,0 +1,45 @@
+2025-06-22T00:36:53.967429626Z ==> Cloning from https://github.com/rehmanul/BOT-Friday
+2025-06-22T00:36:54.502277106Z ==> Checking out commit 0aad1366338e749601a0f40ad796e3a9bb31c842 in branch main
+2025-06-22T00:36:56.387520535Z ==> Downloading cache...
+2025-06-22T00:37:14.741988252Z ==> Transferred 477MB in 9s. Extraction took 8s.
+2025-06-22T00:37:24.281267181Z ==> Using Node.js version 22.16.0 (default)
+2025-06-22T00:37:24.308627545Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-06-22T00:37:24.461989077Z ==> Using Bun version 1.1.0 (default)
+2025-06-22T00:37:24.462006948Z ==> Docs on specifying a Bun version: https://render.com/docs/bun-version
+2025-06-22T00:37:24.525069363Z ==> Running build command 'npm install --include=dev && npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && node init-db.js'...
+2025-06-22T00:37:25.743127179Z 
+2025-06-22T00:37:25.743155619Z up to date, audited 702 packages in 1s
+2025-06-22T00:37:25.743160989Z 
+2025-06-22T00:37:25.74317135Z 92 packages are looking for funding
+2025-06-22T00:37:25.74317612Z   run `npm fund` for details
+2025-06-22T00:37:25.759906897Z 
+2025-06-22T00:37:25.759929577Z 4 moderate severity vulnerabilities
+2025-06-22T00:37:25.759934197Z 
+2025-06-22T00:37:25.759939127Z To address all issues (including breaking changes), run:
+2025-06-22T00:37:25.759943647Z   npm audit fix --force
+2025-06-22T00:37:25.759947278Z 
+2025-06-22T00:37:25.759951908Z Run `npm audit` for details.
+2025-06-22T00:37:26.282524716Z vite v6.3.5 building for production...
+2025-06-22T00:37:26.339671566Z transforming...
+2025-06-22T00:37:28.666518136Z ✓ 1778 modules transformed.
+2025-06-22T00:37:28.916411187Z rendering chunks...
+2025-06-22T00:37:28.926644166Z computing gzip size...
+2025-06-22T00:37:28.941266398Z ../dist/public/index.html                   0.63 kB │ gzip:   0.38 kB
+2025-06-22T00:37:28.941291958Z ../dist/public/assets/index-D_jofWff.css    2.08 kB │ gzip:   0.60 kB
+2025-06-22T00:37:28.941440961Z ../dist/public/assets/index-C4IO777x.js   503.26 kB │ gzip: 148.25 kB
+2025-06-22T00:37:28.941553904Z 
+2025-06-22T00:37:28.941563884Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-06-22T00:37:28.941568904Z - Using dynamic import() to code-split the application
+2025-06-22T00:37:28.941575374Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-06-22T00:37:28.941579955Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-06-22T00:37:28.941882571Z ✓ built in 2.64s
+2025-06-22T00:37:29.271755939Z ✘ [ERROR] Expected "finally" but found "async"
+2025-06-22T00:37:29.271780609Z 
+2025-06-22T00:37:29.271785039Z     server/automation/puppeteer.ts:261:2:
+2025-06-22T00:37:29.271789639Z       261 │   async captureSessionData(): Promise<any> {
+2025-06-22T00:37:29.271794199Z           │   ~~~~~
+2025-06-22T00:37:29.271798419Z           ╵   finally
+2025-06-22T00:37:29.27180208Z 
+2025-06-22T00:37:29.274216601Z 1 error
+2025-06-22T00:37:29.285290937Z ==> Build failed 😞
+2025-06-22T00:37:29.285323038Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
