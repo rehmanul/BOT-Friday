@@ -258,7 +258,7 @@ export class PuppeteerAutomation {
   }
 
   // Capture existing login session
-  finally captureSessionData(): Promise<any> {
+  async captureSessionData(): Promise<any> {
     if (!this.page) throw new Error('Page not initialized');
 
     try {
@@ -631,26 +631,26 @@ export class PuppeteerAutomation {
     try {
       // Category filter
       const categorySelector = 'select[name="category"], .category-filter';
-      if (await this.page.$(categorySelector)) {
-        await this.page.select(categorySelector, category);
+      if (await this.page!.$(categorySelector)) {
+        await this.page!.select(categorySelector, category);
         await this.humanLikeDelay(1000, 2000);
       }
 
       // Followers filter
       const followersSelector = 'input[name="min_followers"], .followers-filter';
-      if (await this.page.$(followersSelector)) {
-        await this.page.click(followersSelector);
-        await this.page.keyboard.down('Control');
-        await this.page.keyboard.press('KeyA');
-        await this.page.keyboard.up('Control');
-        await this.page.type(followersSelector, minFollowers.toString());
+      if (await this.page!.$(followersSelector)) {
+        await this.page!.click(followersSelector);
+        await this.page!.keyboard.down('Control');
+        await this.page!.keyboard.press('KeyA');
+        await this.page!.keyboard.up('Control');
+        await this.page!.type(followersSelector, minFollowers.toString());
         await this.humanLikeDelay(500, 1000);
       }
 
       // Apply filters
       const applyButtonSelector = 'button:contains("Apply"), .apply-filters';
-      if (await this.page.$(applyButtonSelector)) {
-        await this.page.click(applyButtonSelector);
+      if (await this.page!.$(applyButtonSelector)) {
+        await this.page!.click(applyButtonSelector);
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
 
@@ -772,7 +772,7 @@ export class PuppeteerAutomation {
         get: () => 8,
       });
 
-      Object.defineProperty(navigator, 'deviceMemory', {
+      object.defineProperty(navigator, 'deviceMemory', {
         get: () => 8,
       });
     });
@@ -819,5 +819,4 @@ export class PuppeteerAutomation {
     }
     return true;
   }
-
-  async captureSessionData(): Promise<any> {
+}
