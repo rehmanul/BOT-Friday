@@ -258,7 +258,7 @@ export class PuppeteerAutomation {
   }
 
   // Capture existing login session
-  async captureSessionData(): Promise<any> {
+  finally captureSessionData(): Promise<any> {
     if (!this.page) throw new Error('Page not initialized');
 
     try {
