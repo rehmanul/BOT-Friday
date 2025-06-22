@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 import { Browser, Page } from 'puppeteer';
+
 // Simplified user agent generation
 const getRandomUserAgent = () => {
   const agents = [
@@ -60,9 +61,11 @@ export class PuppeteerAutomation {
         executablePath = undefined;
       }
 
-      const launchOptions = {
-        headless: true, // Changed to headless for Replit environment
-        executablePath, // Use system Chromium if found
+      // Check if we're in production environment
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      const launchOptions: any = {
+        headless: true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -98,26 +101,11 @@ export class PuppeteerAutomation {
           '--disable-threaded-scrolling',
           '--disable-checker-imaging'
         ],
-        defaultViewport: null,
-        executablePath: process.env.NODE_ENV === 'production' 
-          ? '/usr/bin/google-chrome' 
-          : undefined,
-        args: process.env.NODE_ENV === 'production' 
-          ? [
-              '--no-sandbox',
-              '--disable-setuid-sandbox',
-              '--disable-dev-shm-usage',
-              '--disable-accelerated-2d-canvas',
-              '--no-first-run',
-              '--no-zygote',
-              '--single-process',
-              '--disable-gpu'
-            ]
-          : []
+        defaultViewport: null
       };
 
       // Add Chrome executable path for production environments
-      if (process.env.NODE_ENV === 'production') {
+      if (isProduction) {
         const possiblePaths = [
           process.env.CHROME_BIN,
           process.env.PUPPETEER_EXECUTABLE_PATH,
@@ -136,14 +124,14 @@ export class PuppeteerAutomation {
             const { glob } = await import('glob');
 
             // Handle glob patterns for Puppeteer cache
-            if (path.includes('**')) {
+            if (path && path.includes('**')) {
               const matches = glob.sync(path);
               if (matches.length > 0) {
                 launchOptions.executablePath = matches[0];
                 console.log(`Using Chrome at: ${matches[0]}`, 'puppeteer');
                 break;
               }
-            } else if (existsSync(path)) {
+            } else if (path && existsSync(path)) {
               launchOptions.executablePath = path;
               console.log(`Using Chrome at: ${path}`, 'puppeteer');
               break;
@@ -152,97 +140,91 @@ export class PuppeteerAutomation {
             continue;
           }
         }
+      } else {
+        // For development, use the detected executable path
+        if (executablePath) {
+          launchOptions.executablePath = executablePath;
+        }
       }
 
       try {
-      // Check if we're in production environment
-      const isProduction = process.env.NODE_ENV === 'production';
-
-      const launchOptions = {
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--disable-gpu'
-        ]
-      };
-
-      // In production, try to use system Chrome if Puppeteer Chrome is not available
-      if (isProduction) {
-        try {
-          this.browser = await puppeteer.launch(launchOptions);
-        } catch (error) {
-          if (error.message.includes('Could not find Chrome')) {
-            // Try with system Chrome path
-            launchOptions.executablePath = '/usr/bin/google-chrome-stable';
+        // In production, try to use system Chrome if Puppeteer Chrome is not available
+        if (isProduction) {
+          try {
             this.browser = await puppeteer.launch(launchOptions);
-          } else {
-            throw error;
+          } catch (error: any) {
+            if (error.message.includes('Could not find Chrome')) {
+              // Try with system Chrome path
+              launchOptions.executablePath = '/usr/bin/google-chrome-stable';
+              this.browser = await puppeteer.launch(launchOptions);
+            } else {
+              throw error;
+            }
           }
+        } else {
+          this.browser = await puppeteer.launch(launchOptions);
         }
-      } else {
-        this.browser = await puppeteer.launch(launchOptions);
-      }
 
-      this.page = await this.browser.newPage();
+        this.page = await this.browser.newPage();
 
-      // Advanced stealth configurations
-      await this.page.setViewport({ 
-        width: 1366 + Math.floor(Math.random() * 100),
-        height: 768 + Math.floor(Math.random() * 100)
-      });
-
-      await this.page.setUserAgent(randomUA);
-
-      // Remove webdriver property
-      await this.page.evaluateOnNewDocument(() => {
-        Object.defineProperty(navigator, 'webdriver', {
-          get: () => undefined,
+        // Advanced stealth configurations
+        await this.page.setViewport({ 
+          width: 1366 + Math.floor(Math.random() * 100),
+          height: 768 + Math.floor(Math.random() * 100)
         });
-      });
 
-      // Randomize language and timezone
-      await this.page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-      });
+        await this.page.setUserAgent(randomUA);
 
-      // Navigate to TikTok Seller Affiliate Center
-      console.log('Navigating to TikTok Seller Affiliate Center...');
-      await this.page.goto('https://affiliate.tiktok.com/connection/creator?shop_region=GB', { 
-        waitUntil: 'networkidle0',
-        timeout: 30000
-      });
+        // Remove webdriver property
+        await this.page.evaluateOnNewDocument(() => {
+          Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined,
+          });
+        });
 
-      // Wait for potential login detection
-      await this.humanLikeDelay(2000, 4000);
+        // Randomize language and timezone
+        await this.page.setExtraHTTPHeaders({
+          'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        });
 
-      // Check if already logged in or capture login session
-      const isLoggedIn = await this.detectLoginStatus();
+        // Navigate to TikTok Seller Affiliate Center
+        console.log('Navigating to TikTok Seller Affiliate Center...');
+        await this.page.goto('https://affiliate.tiktok.com/connection/creator?shop_region=GB', { 
+          waitUntil: 'networkidle0',
+          timeout: 30000
+        });
 
-      if (isLoggedIn) {
-        console.log('Existing session detected, capturing session data...');
-        this.sessionData = await this.captureSessionData();
-      } else {
-        console.log('No active session found. User needs to login manually.');
+        // Wait for potential login detection
+        await this.humanLikeDelay(2000, 4000);
+
+        // Check if already logged in or capture login session
+        const isLoggedIn = await this.detectLoginStatus();
+
+        if (isLoggedIn) {
+          console.log('Existing session detected, capturing session data...');
+          this.sessionData = await this.captureSessionData();
+        } else {
+          console.log('No active session found. User needs to login manually.');
+        }
+
+        this.isInitialized = true;
+        return {
+          initialized: true,
+          timestamp: new Date(),
+          userAgent: randomUA,
+          isLoggedIn,
+          sessionCaptured: !!this.sessionData,
+          cookies: await this.page.cookies(),
+          localStorage: await this.captureLocalStorage(),
+          sessionStorage: await this.captureSessionStorage()
+        };
+
+      } catch (error) {
+        console.error('Browser launch error:', error);
+        throw error;
       }
-
-      this.isInitialized = true;
-      return {
-        initialized: true,
-        timestamp: new Date(),
-        userAgent: randomUA,
-        isLoggedIn,
-        sessionCaptured: !!this.sessionData,
-        cookies: await this.page.cookies(),
-        localStorage: await this.captureLocalStorage(),
-        sessionStorage: await this.captureSessionStorage()
-      };
 
     } catch (error) {
       console.error('Failed to initialize Puppeteer session:', error);
@@ -610,11 +592,45 @@ export class PuppeteerAutomation {
           const categoryEl = element.querySelector('.category, .creator-category');
           const gmvEl = element.querySelector('.gmv, .earnings');
 
+          const parseFollowerCount = (text?: string): number | null => {
+            if (!text) return null;
+
+            const match = text.match(/([\d.]+)([KMB]?)/i);
+            if (!match) return null;
+
+            const [, number, unit] = match;
+            const num = parseFloat(number);
+
+            switch (unit?.toUpperCase()) {
+              case 'K': return Math.round(num * 1000);
+              case 'M': return Math.round(num * 1000000);
+              case 'B': return Math.round(num * 1000000000);
+              default: return Math.round(num);
+            }
+          };
+
+          const parseGMV = (text?: string): number | null => {
+            if (!text) return null;
+
+            const match = text.match(/\$?([\d,.]+)([KMB]?)/i);
+            if (!match) return null;
+
+            const [, number, unit] = match;
+            const num = parseFloat(number.replace(/,/g, ''));
+
+            switch (unit?.toUpperCase()) {
+              case 'K': return Math.round(num * 1000);
+              case 'M': return Math.round(num * 1000000);
+              case 'B': return Math.round(num * 1000000000);
+              default: return Math.round(num);
+            }
+          };
+
           return {
             username: usernameEl?.textContent?.trim(),
-            followers: this.parseFollowerCount(followersEl?.textContent?.trim()),
+            followers: parseFollowerCount(followersEl?.textContent?.trim()),
             category: categoryEl?.textContent?.trim(),
-            gmv: this.parseGMV(gmvEl?.textContent?.trim())
+            gmv: parseGMV(gmvEl?.textContent?.trim())
           };
         });
       });
@@ -690,7 +706,7 @@ export class PuppeteerAutomation {
     const [, number, unit] = match;
     const num = parseFloat(number);
 
-    switch (unit.toUpperCase()) {
+    switch (unit?.toUpperCase()) {
       case 'K': return Math.round(num * 1000);
       case 'M': return Math.round(num * 1000000);
       case 'B': return Math.round(num * 1000000000);
@@ -707,7 +723,7 @@ export class PuppeteerAutomation {
     const [, number, unit] = match;
     const num = parseFloat(number.replace(/,/g, ''));
 
-    switch (unit.toUpperCase()) {
+    switch (unit?.toUpperCase()) {
       case 'K': return Math.round(num * 1000);
       case 'M': return Math.round(num * 1000000);
       case 'B': return Math.round(num * 1000000000);
@@ -772,7 +788,7 @@ export class PuppeteerAutomation {
         get: () => 8,
       });
 
-      object.defineProperty(navigator, 'deviceMemory', {
+      Object.defineProperty(navigator, 'deviceMemory', {
         get: () => 8,
       });
     });
