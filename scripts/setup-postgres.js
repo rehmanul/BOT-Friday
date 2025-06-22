@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 
 import postgres from 'postgres';
@@ -46,67 +45,11 @@ try {
       updated_at TIMESTAMP DEFAULT NOW()
     );
   `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS creators (
-      id SERIAL PRIMARY KEY,
-      username TEXT UNIQUE NOT NULL,
-      display_name TEXT,
-      followers INTEGER,
-      category TEXT,
-      engagement_rate DECIMAL(5,2),
-      gmv DECIMAL(12,2),
-      profile_data JSONB,
-      last_updated TIMESTAMP DEFAULT NOW(),
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS campaign_invitations (
-      id SERIAL PRIMARY KEY,
-      campaign_id INTEGER NOT NULL REFERENCES campaigns(id),
-      creator_id INTEGER NOT NULL REFERENCES creators(id),
-      status VARCHAR(20) NOT NULL DEFAULT 'pending',
-      invitation_text TEXT,
-      sent_at TIMESTAMP,
-      responded_at TIMESTAMP,
-      response_text TEXT,
-      error_message TEXT,
-      retry_count INTEGER DEFAULT 0,
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS browser_sessions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      session_data JSONB,
-      is_active BOOLEAN DEFAULT false,
-      last_activity TIMESTAMP DEFAULT NOW(),
-      expires_at TIMESTAMP,
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-  `;
-
-  await sql`
-    CREATE TABLE IF NOT EXISTS activity_logs (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      campaign_id INTEGER REFERENCES campaigns(id),
-      type VARCHAR(50) NOT NULL,
-      message TEXT NOT NULL,
-      metadata JSONB,
-      timestamp TIMESTAMP DEFAULT NOW()
-    );
-  `;
-
   console.log('Database tables created successfully!');
-  
+
   // Create a default admin user if none exists
   const existingUsers = await sql`SELECT id FROM users LIMIT 1`;
-  
+
   if (existingUsers.length === 0) {
     await sql`
       INSERT INTO users (username, email, password_hash, full_name, settings)

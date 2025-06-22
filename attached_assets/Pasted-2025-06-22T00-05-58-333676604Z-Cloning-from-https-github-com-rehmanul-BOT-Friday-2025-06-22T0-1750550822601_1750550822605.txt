@@ -1,0 +1,50 @@
+2025-06-22T00:05:58.333676604Z ==> Cloning from https://github.com/rehmanul/BOT-Friday
+2025-06-22T00:05:58.859552744Z ==> Checking out commit 642ebdba2b3ee9eec31f119f9fca05cf0f46fbbf in branch main
+2025-06-22T00:05:59.84800406Z ==> Downloading cache...
+2025-06-22T00:06:19.453886749Z ==> Transferred 478MB in 9s. Extraction took 9s.
+2025-06-22T00:06:36.309149996Z ==> Using Node.js version 22.16.0 (default)
+2025-06-22T00:06:36.336199692Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-06-22T00:06:36.521933181Z ==> Using Bun version 1.1.0 (default)
+2025-06-22T00:06:36.521949941Z ==> Docs on specifying a Bun version: https://render.com/docs/bun-version
+2025-06-22T00:06:36.592866792Z ==> Running build command 'npm install --include=dev && npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && node init-db.js'...
+2025-06-22T00:06:37.876821851Z 
+2025-06-22T00:06:37.876853502Z up to date, audited 714 packages in 1s
+2025-06-22T00:06:37.876859162Z 
+2025-06-22T00:06:37.876892643Z 92 packages are looking for funding
+2025-06-22T00:06:37.876904453Z   run `npm fund` for details
+2025-06-22T00:06:37.891041404Z 
+2025-06-22T00:06:37.891061294Z 4 moderate severity vulnerabilities
+2025-06-22T00:06:37.891063585Z 
+2025-06-22T00:06:37.891067015Z To address all issues (including breaking changes), run:
+2025-06-22T00:06:37.891069395Z   npm audit fix --force
+2025-06-22T00:06:37.891071015Z 
+2025-06-22T00:06:37.891074325Z Run `npm audit` for details.
+2025-06-22T00:06:38.480021393Z vite v6.3.5 building for production...
+2025-06-22T00:06:38.539738725Z transforming...
+2025-06-22T00:06:40.748573842Z ✓ 1778 modules transformed.
+2025-06-22T00:06:40.969734306Z rendering chunks...
+2025-06-22T00:06:40.980259026Z computing gzip size...
+2025-06-22T00:06:40.994654872Z ../dist/public/index.html                   0.63 kB │ gzip:   0.38 kB
+2025-06-22T00:06:40.994706872Z ../dist/public/assets/index-D_jofWff.css    2.08 kB │ gzip:   0.60 kB
+2025-06-22T00:06:40.994887615Z ../dist/public/assets/index-C4IO777x.js   503.26 kB │ gzip: 148.25 kB
+2025-06-22T00:06:40.995025397Z 
+2025-06-22T00:06:40.995029997Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-06-22T00:06:40.995032747Z - Using dynamic import() to code-split the application
+2025-06-22T00:06:40.995035337Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-06-22T00:06:40.995037507Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-06-22T00:06:40.995447133Z ✓ built in 2.49s
+2025-06-22T00:06:41.337245557Z 
+2025-06-22T00:06:41.337268957Z   dist/index.js  133.0kb
+2025-06-22T00:06:41.337271637Z 
+2025-06-22T00:06:41.337273957Z ⚡ Done in 9ms
+2025-06-22T00:06:41.713903078Z Initializing production database...
+2025-06-22T00:06:41.718064057Z Running database migrations...
+2025-06-22T00:06:41.718714467Z Database initialization failed: Error: Can't find meta/_journal.json file
+2025-06-22T00:06:41.718723727Z     at readMigrationFiles (file:///opt/render/project/src/node_modules/drizzle-orm/migrator.js:8:11)
+2025-06-22T00:06:41.718726347Z     at migrate (file:///opt/render/project/src/node_modules/drizzle-orm/better-sqlite3/migrator.js:3:22)
+2025-06-22T00:06:41.718729057Z     at file:///opt/render/project/src/init-db.js:20:5
+2025-06-22T00:06:41.718731237Z     at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+2025-06-22T00:06:41.718733957Z     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+2025-06-22T00:06:41.718736087Z     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2025-06-22T00:06:41.732657125Z ==> Build failed 😞
+2025-06-22T00:06:41.732668755Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

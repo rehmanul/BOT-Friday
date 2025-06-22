@@ -9,9 +9,11 @@ echo "Starting Render build process..."
 echo "Installing dependencies..."
 npm install --include=dev
 
-# Install Chrome for Puppeteer
+# Install Chrome for Puppeteer with proper cache directory
 echo "Installing Chrome for Puppeteer..."
-npx puppeteer browsers install chrome
+export PUPPETEER_CACHE_DIR=/opt/render/.cache/puppeteer
+mkdir -p $PUPPETEER_CACHE_DIR
+npx puppeteer browsers install chrome --path $PUPPETEER_CACHE_DIR
 
 echo "Setting up PostgreSQL database..."
 node scripts/setup-postgres.js

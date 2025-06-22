@@ -119,7 +119,7 @@ export class PuppeteerAutomation {
           try {
             const { existsSync } = await import('fs');
             const { glob } = await import('glob');
-            
+
             // Handle glob patterns for Puppeteer cache
             if (path.includes('**')) {
               const matches = glob.sync(path);
@@ -771,8 +771,9 @@ export class PuppeteerAutomation {
       }
     }
     return true;
-  
+
     } catch (error) {
       console.error('Cleanup error:', error);
     }
   }
+}

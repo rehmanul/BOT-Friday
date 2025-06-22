@@ -91,3 +91,18 @@ CREATE INDEX IF NOT EXISTS idx_browser_sessions_user_id ON browser_sessions(user
 CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_campaign_id ON activity_logs(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_creators_username ON creators(username);
+
+-- Create default admin user if none exists
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM users LIMIT 1) THEN
+    INSERT INTO users (username, email, password_hash, full_name, settings)
+    VALUES (
+      'admin',
+      'admin@yourdomain.com',
+      'change_me_after_deployment',
+      'System Administrator',
+      '{"theme": "dark", "notifications": true, "autoSave": true}'
+    );
+  END IF;
+END $$;
