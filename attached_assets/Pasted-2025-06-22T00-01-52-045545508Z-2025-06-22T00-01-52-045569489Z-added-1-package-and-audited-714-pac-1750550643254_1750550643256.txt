@@ -1,0 +1,87 @@
+2025-06-22T00:01:52.045545508Z 
+2025-06-22T00:01:52.045569489Z added 1 package, and audited 714 packages in 2s
+2025-06-22T00:01:52.045685851Z 
+2025-06-22T00:01:52.045719582Z 92 packages are looking for funding
+2025-06-22T00:01:52.045828634Z   run `npm fund` for details
+2025-06-22T00:01:52.069185403Z 
+2025-06-22T00:01:52.069217534Z 4 moderate severity vulnerabilities
+2025-06-22T00:01:52.069221044Z 
+2025-06-22T00:01:52.069224704Z To address all issues (including breaking changes), run:
+2025-06-22T00:01:52.069227074Z   npm audit fix --force
+2025-06-22T00:01:52.069228644Z 
+2025-06-22T00:01:52.069231274Z Run `npm audit` for details.
+2025-06-22T00:01:52.664360608Z vite v6.3.5 building for production...
+2025-06-22T00:01:52.751328596Z transforming...
+2025-06-22T00:01:55.471884438Z ✓ 1778 modules transformed.
+2025-06-22T00:01:55.753731279Z rendering chunks...
+2025-06-22T00:01:55.907336661Z computing gzip size...
+2025-06-22T00:01:55.921988654Z 
+2025-06-22T00:01:55.973503185Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-06-22T00:01:55.973507645Z ../dist/public/index.html                   0.63 kB │ gzip:   0.38 kB
+2025-06-22T00:01:55.973510195Z - Using dynamic import() to code-split the application
+2025-06-22T00:01:55.973533946Z ../dist/public/assets/index-D_jofWff.css    2.08 kB │ gzip:   0.60 kB
+2025-06-22T00:01:55.973539846Z ../dist/public/assets/index-C4IO777x.js   503.26 kB │ gzip: 148.25 kB
+2025-06-22T00:01:55.973544156Z ✓ built in 3.23s
+2025-06-22T00:01:55.973552416Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-06-22T00:01:55.973556066Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-06-22T00:01:56.326952636Z 
+2025-06-22T00:01:56.326974546Z   dist/index.js  133.0kb
+2025-06-22T00:01:56.326978466Z 
+2025-06-22T00:01:56.326981977Z ⚡ Done in 12ms
+2025-06-22T00:01:56.7161371Z Initializing production database...
+2025-06-22T00:01:56.719211746Z No migrations directory found
+2025-06-22T00:01:57.4636334Z Basic database schema created
+2025-06-22T00:01:57.463780063Z Database initialization completed
+2025-06-22T00:02:03.937658182Z ==> Uploading build...
+2025-06-22T00:02:13.672639032Z ==> Uploaded in 5.9s. Compression took 3.8s
+2025-06-22T00:02:13.714996997Z ==> Build successful 🎉
+2025-06-22T00:02:19.201865354Z ==> Deploying...
+2025-06-22T00:02:41.759481661Z ==> Running 'npm run start'
+2025-06-22T00:02:42.862225883Z 
+2025-06-22T00:02:42.862251104Z > rest-express@1.0.0 start
+2025-06-22T00:02:42.862255794Z > NODE_ENV=production node dist/index.js
+2025-06-22T00:02:42.862258414Z 
+2025-06-22T00:03:00.065612104Z ==> Your service is live 🎉
+2025-06-22T00:03:00.096572493Z ==> 
+2025-06-22T00:03:00.125675683Z ==> ///////////////////////////////////////////////////////////
+2025-06-22T00:03:00.153634833Z ==> 
+2025-06-22T00:03:00.181959562Z ==> Available at your primary URL https://bot-friday.onrender.com
+2025-06-22T00:03:00.210590023Z ==> 
+2025-06-22T00:03:00.238651642Z ==> ///////////////////////////////////////////////////////////
+2025-06-22T00:02:54.856024135Z Connecting to PostgreSQL database...
+2025-06-22T00:02:54.953973949Z Missing API keys: ANTHROPIC_API_KEY, OPENAI_API_KEY. Some AI features will be unavailable.
+2025-06-22T00:02:54.960616134Z [2025-06-22T00:02:54.959Z] INFO: Rate limiter initialized (rate-limiter)
+2025-06-22T00:02:55.051225511Z [2025-06-22T00:02:55.050Z] INFO: Environment validation completed (env-validator)
+2025-06-22T00:02:55.051458915Z [2025-06-22T00:02:55.051Z] INFO: Server starting up (server)
+2025-06-22T00:02:55.251737609Z [2025-06-22T00:02:55.251Z] INFO: Setting up static file serving for production (server)
+2025-06-22T00:02:55.361500337Z 12:02:55 AM [express] ✅ Static files served from /opt/render/project/src/dist/public
+2025-06-22T00:02:56.053874152Z [2025-06-22T00:02:56.053Z] INFO: Server started successfully on port 10000 (server)
+2025-06-22T00:02:56.954716752Z Error fetching active browser session: PostgresError: relation "browser_sessions" does not exist
+2025-06-22T00:02:56.954740462Z     at ErrorResponse (file:///opt/render/project/src/node_modules/postgres/src/connection.js:794:26)
+2025-06-22T00:02:56.954743332Z     at handle (file:///opt/render/project/src/node_modules/postgres/src/connection.js:480:6)
+2025-06-22T00:02:56.954745552Z     at Socket.data (file:///opt/render/project/src/node_modules/postgres/src/connection.js:315:9)
+2025-06-22T00:02:56.954748072Z     at Socket.emit (node:events:518:28)
+2025-06-22T00:02:56.954750712Z     at addChunk (node:internal/streams/readable:561:12)
+2025-06-22T00:02:56.954753973Z     at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+2025-06-22T00:02:56.954756123Z     at Readable.push (node:internal/streams/readable:392:5)
+2025-06-22T00:02:56.954758433Z     at TCP.onStreamRead (node:internal/stream_base_commons:189:23) {
+2025-06-22T00:02:56.954760943Z   severity_local: 'ERROR',
+2025-06-22T00:02:56.954763413Z   severity: 'ERROR',
+2025-06-22T00:02:56.954765653Z   code: '42P01',
+2025-06-22T00:02:56.954767783Z   position: '103',
+2025-06-22T00:02:56.954769843Z   file: 'parse_relation.c',
+2025-06-22T00:02:56.954771933Z   line: '1449',
+2025-06-22T00:02:56.954774043Z   routine: 'parserOpenTable'
+2025-06-22T00:02:56.954776143Z }
+2025-06-22T00:03:13.753447429Z Failed to initialize Puppeteer session: Error: Could not find Chrome (ver. 137.0.7151.119). This can occur if either
+2025-06-22T00:03:13.75346791Z  1. you did not perform an installation before running the script (e.g. `npx puppeteer browsers install chrome`) or
+2025-06-22T00:03:13.75347189Z  2. your cache path is incorrectly configured (which is: /opt/render/.cache/puppeteer).
+2025-06-22T00:03:13.75347505Z For (2), check out our guide on configuring puppeteer at https://pptr.dev/guides/configuration.
+2025-06-22T00:03:13.7534786Z     at ChromeLauncher.resolveExecutablePath (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:308:27)
+2025-06-22T00:03:13.75348147Z     at ChromeLauncher.computeLaunchArguments (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:93:24)
+2025-06-22T00:03:13.75349663Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/BrowserLauncher.js:84:39)
+2025-06-22T00:03:13.75350145Z     at ChromeLauncher.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/ChromeLauncher.js:45:22)
+2025-06-22T00:03:13.75350607Z     at PuppeteerNode.launch (/opt/render/project/src/node_modules/puppeteer-core/lib/cjs/puppeteer/node/PuppeteerNode.js:143:31)
+2025-06-22T00:03:13.753523361Z     at PuppeteerExtra.launch (/opt/render/project/src/node_modules/puppeteer-extra/dist/index.cjs.js:128:41)
+2025-06-22T00:03:13.753526431Z     at async PuppeteerAutomation.initializeSession (file:///opt/render/project/src/dist/index.js:2903:22)
+2025-06-22T00:03:13.753551351Z Automation features will be disabled until Chrome is available
