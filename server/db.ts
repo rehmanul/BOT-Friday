@@ -147,6 +147,13 @@ async function createTablesIfNotExists() {
       )
     `;
 
+    // Add tiktok_id column if it doesn't exist (for existing tables)
+    try {
+      await sql`ALTER TABLE creators ADD COLUMN IF NOT EXISTS tiktok_id VARCHAR(255) UNIQUE`;
+    } catch (error) {
+      // Column might already exist, ignore error
+    }
+
     // Create indexes for better performance
     await sql`CREATE INDEX IF NOT EXISTS idx_creators_tiktok_id ON creators(tiktok_id)`;
     await sql`CREATE INDEX IF NOT EXISTS idx_campaigns_user_id ON campaigns(user_id)`;

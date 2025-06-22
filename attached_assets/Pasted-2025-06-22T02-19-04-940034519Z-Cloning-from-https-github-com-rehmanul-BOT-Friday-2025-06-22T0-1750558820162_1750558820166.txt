@@ -1,0 +1,50 @@
+2025-06-22T02:19:04.940034519Z ==> Cloning from https://github.com/rehmanul/BOT-Friday
+2025-06-22T02:19:05.504652891Z ==> Checking out commit 6849c0b7ab24088bdb734286cc2b5fef3083f2b5 in branch main
+2025-06-22T02:19:06.608422236Z ==> Downloading cache...
+2025-06-22T02:19:26.378891913Z ==> Transferred 477MB in 9s. Extraction took 10s.
+2025-06-22T02:19:33.186379505Z ==> Using Node.js version 22.16.0 (default)
+2025-06-22T02:19:33.223055053Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2025-06-22T02:19:33.387001948Z ==> Using Bun version 1.1.0 (default)
+2025-06-22T02:19:33.387020148Z ==> Docs on specifying a Bun version: https://render.com/docs/bun-version
+2025-06-22T02:19:33.459529262Z ==> Running build command 'npm install --include=dev && npx vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && node init-db.js'...
+2025-06-22T02:19:35.128325916Z 
+2025-06-22T02:19:35.128356716Z up to date, audited 702 packages in 2s
+2025-06-22T02:19:35.128362576Z 
+2025-06-22T02:19:35.128422217Z 92 packages are looking for funding
+2025-06-22T02:19:35.128434927Z   run `npm fund` for details
+2025-06-22T02:19:35.146996099Z 
+2025-06-22T02:19:35.147018539Z 4 moderate severity vulnerabilities
+2025-06-22T02:19:35.14702281Z 
+2025-06-22T02:19:35.14702727Z To address all issues (including breaking changes), run:
+2025-06-22T02:19:35.1470317Z   npm audit fix --force
+2025-06-22T02:19:35.14703504Z 
+2025-06-22T02:19:35.14703887Z Run `npm audit` for details.
+2025-06-22T02:19:35.769918205Z vite v6.3.5 building for production...
+2025-06-22T02:19:35.839079091Z transforming...
+2025-06-22T02:19:38.490883976Z ✓ 1778 modules transformed.
+2025-06-22T02:19:38.766547138Z rendering chunks...
+2025-06-22T02:19:38.777601854Z computing gzip size...
+2025-06-22T02:19:38.791310448Z ../dist/public/index.html                   0.63 kB │ gzip:   0.38 kB
+2025-06-22T02:19:38.791329318Z ../dist/public/assets/index-D_jofWff.css    2.08 kB │ gzip:   0.60 kB
+2025-06-22T02:19:38.79146168Z ../dist/public/assets/index-C4IO777x.js   503.26 kB │ gzip: 148.25 kB
+2025-06-22T02:19:38.791586972Z 
+2025-06-22T02:19:38.791593842Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-06-22T02:19:38.791599412Z - Using dynamic import() to code-split the application
+2025-06-22T02:19:38.791603052Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-06-22T02:19:38.791605902Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-06-22T02:19:38.791934397Z ✓ built in 3.00s
+2025-06-22T02:19:39.172176746Z ✘ [ERROR] The symbol "server" has already been declared
+2025-06-22T02:19:39.172197796Z 
+2025-06-22T02:19:39.172204956Z     server/index.ts:101:8:
+2025-06-22T02:19:39.172209656Z       101 │   const server = createServer(app);
+2025-06-22T02:19:39.172214076Z           ╵         ~~~~~~
+2025-06-22T02:19:39.172218176Z 
+2025-06-22T02:19:39.172222776Z   The symbol "server" was originally declared here:
+2025-06-22T02:19:39.172226947Z 
+2025-06-22T02:19:39.172230967Z     server/index.ts:27:8:
+2025-06-22T02:19:39.172234656Z       27 │   const server = createServer(app);
+2025-06-22T02:19:39.172237547Z          ╵         ~~~~~~
+2025-06-22T02:19:39.172240177Z 
+2025-06-22T02:19:39.175641655Z 1 error
+2025-06-22T02:19:39.187615094Z ==> Build failed 😞
+2025-06-22T02:19:39.187632184Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
