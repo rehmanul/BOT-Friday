@@ -1,19 +1,24 @@
+
 services:
   - type: web
     name: tiktok-automation
     env: node
     plan: starter
-    buildCommand: npm install --include=dev && npx puppeteer browsers install chrome && npx vite build --outDir=dist/public && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist && node init-db.js
-    startCommand: npm run start
+    buildCommand: chmod +x scripts/render-build.sh && ./scripts/render-build.sh
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tiktok-automation-db
+          property: connectionString
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: false
-      - key: PUPPETEER_CACHE_DIR
-        value: /opt/render/.cache/puppeteer
-    disk:
-      name: data
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1
-    port: 5000 # Ensure to add this
+        value: true
+    healthCheckPath: /api/health
+
+databases:
+  - name: tiktok-automation-db
+    databaseName: tiktok_automation
+    user: tiktok_user
+    plan: starter

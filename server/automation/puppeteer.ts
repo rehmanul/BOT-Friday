@@ -98,7 +98,22 @@ export class PuppeteerAutomation {
           '--disable-threaded-scrolling',
           '--disable-checker-imaging'
         ],
-        defaultViewport: null
+        defaultViewport: null,
+        executablePath: process.env.NODE_ENV === 'production' 
+          ? '/usr/bin/google-chrome' 
+          : undefined,
+        args: process.env.NODE_ENV === 'production' 
+          ? [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+              '--disable-accelerated-2d-canvas',
+              '--no-first-run',
+              '--no-zygote',
+              '--single-process',
+              '--disable-gpu'
+            ]
+          : []
       };
 
       // Add Chrome executable path for production environments
