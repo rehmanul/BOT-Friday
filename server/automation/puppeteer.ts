@@ -154,7 +154,39 @@ export class PuppeteerAutomation {
         }
       }
 
-      this.browser = await puppeteer.launch(launchOptions);
+      try {
+      // Check if we're in production environment
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      const launchOptions = {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ]
+      };
+
+      // In production, try to use system Chrome if Puppeteer Chrome is not available
+      if (isProduction) {
+        try {
+          this.browser = await puppeteer.launch(launchOptions);
+        } catch (error) {
+          if (error.message.includes('Could not find Chrome')) {
+            // Try with system Chrome path
+            launchOptions.executablePath = '/usr/bin/google-chrome-stable';
+            this.browser = await puppeteer.launch(launchOptions);
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        this.browser = await puppeteer.launch(launchOptions);
+      }
 
       this.page = await this.browser.newPage();
 
@@ -791,3 +823,4 @@ export class PuppeteerAutomation {
       console.error('Cleanup error:', error);
     }
   }
+}

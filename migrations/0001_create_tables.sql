@@ -1,4 +1,3 @@
-
 -- Create campaigns table
 CREATE TABLE IF NOT EXISTS campaigns (
   id SERIAL PRIMARY KEY,
@@ -68,3 +67,21 @@ CREATE INDEX IF NOT EXISTS idx_browser_sessions_active ON browser_sessions(is_ac
 CREATE INDEX IF NOT EXISTS idx_automation_logs_session ON automation_logs(session_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_creators_campaign ON campaign_creators(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_campaign_creators_creator ON campaign_creators(creator_id);
+
+-- Add browser_sessions table for Puppeteer session management
+CREATE TABLE IF NOT EXISTS "browser_sessions" (
+  "id" SERIAL PRIMARY KEY,
+  "session_id" VARCHAR(255) UNIQUE NOT NULL,
+  "user_agent" TEXT,
+  "cookies" TEXT,
+  "local_storage" TEXT,
+  "session_storage" TEXT,
+  "is_active" BOOLEAN DEFAULT true,
+  "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  "expires_at" TIMESTAMP
+);
+
+-- Add index for faster session lookups
+CREATE INDEX IF NOT EXISTS "idx_browser_sessions_session_id" ON "browser_sessions" ("session_id");
+CREATE INDEX IF NOT EXISTS "idx_browser_sessions_is_active" ON "browser_sessions" ("is_active");
