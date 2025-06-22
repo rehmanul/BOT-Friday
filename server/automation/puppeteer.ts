@@ -821,6 +821,9 @@ export class PuppeteerAutomation {
 
     } catch (error) {
       console.error('Cleanup error:', error);
+    } finally {
+      // Ensure cleanup is complete
     }
   }
-}
+
+  async captureSessionData(): Promise<any> {
