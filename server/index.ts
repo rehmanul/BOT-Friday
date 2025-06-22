@@ -5,84 +5,84 @@ import { PuppeteerAutomation } from "./automation/puppeteer";
 import { errorHandler, AppError } from "./middleware/error-handler";
 import { logger } from "./utils/logger";
 import { validateEnvironment, getEnvironmentInfo } from "./utils/env-validator";
-import { healthCheckHandler } from "./middleware/health-check";
 import { initializeDatabase } from "./db";
 
-const app = express();
+(async () => {
+  // Validate environment variables on startup
+  if (!validateEnvironment()) {
+    logger.error("Environment validation failed, server will not start", "server");
+    process.exit(1);
+  }
 
-// Validate environment variables on startup
-if (!validateEnvironment()) {
-  logger.error("Environment validation failed, server will not start", "server");
-  process.exit(1);
-}
+  // Initialize database first, before creating any services
+  try {
+    await initializeDatabase();
+    logger.info("Database initialized successfully", "server");
+  } catch (error) {
+    logger.error("Failed to initialize database", "server", undefined, error);
+    process.exit(1);
+  }
 
-// Initialize database before starting services
-try {
-  await initializeDatabase();
-  logger.info("Database initialized successfully", "server");
-} catch (error) {
-  logger.error("Failed to initialize database", "server", undefined, error);
-  process.exit(1);
-}
+  const app = express();
+  const server = createServer(app);
 
-logger.info("Server starting up", "server", undefined, getEnvironmentInfo());
+  logger.info("Server starting up", "server", undefined, getEnvironmentInfo());
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// Security headers
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:;");
-  res.setHeader('X-Powered-By', ''); // Remove server info
-  next();
-});
-
-// Request logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api") || path.startsWith("/health")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-
-      // Only log response body for errors in production
-      if (capturedJsonResponse && (res.statusCode >= 400 || process.env.NODE_ENV !== 'production')) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 120) {
-        logLine = logLine.slice(0, 119) + "…";
-      }
-
-      // Log based on status code
-      if (res.statusCode >= 500) {
-        logger.error(logLine, 'http');
-      } else if (res.statusCode >= 400) {
-        logger.warn(logLine, 'http');
-      } else if (res.statusCode < 300) {
-        logger.info(logLine, 'http');
-      }
-    }
+  // Security headers
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:;");
+    res.setHeader('X-Powered-By', ''); // Remove server info
+    next();
   });
 
-  next();
-});
+  // Request logging middleware
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const path = req.path;
+    let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-(async () => {
+    const originalResJson = res.json;
+    res.json = function (bodyJson, ...args) {
+      capturedJsonResponse = bodyJson;
+      return originalResJson.apply(res, [bodyJson, ...args]);
+    };
+
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      if (path.startsWith("/api") || path.startsWith("/health")) {
+        let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+
+        // Only log response body for errors in production
+        if (capturedJsonResponse && (res.statusCode >= 400 || process.env.NODE_ENV !== 'production')) {
+          logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        }
+
+        if (logLine.length > 120) {
+          logLine = logLine.slice(0, 119) + "…";
+        }
+
+        // Log based on status code
+        if (res.statusCode >= 500) {
+          logger.error(logLine, 'http');
+        } else if (res.statusCode >= 400) {
+          logger.warn(logLine, 'http');
+        } else if (res.statusCode < 300) {
+          logger.info(logLine, 'http');
+        }
+      }
+    });
+
+    next();
+  });
+
   const puppeteerAutomation = new PuppeteerAutomation();
 
   // Initialize Puppeteer without blocking server startup
@@ -213,14 +213,11 @@ app.use((req, res, next) => {
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-  // Handle uncaught exceptions
-  process.on('uncaughtException', (error) => {
-    logger.error('Uncaught exception', 'server', undefined, error);
-    gracefulShutdown('UNCAUGHT_EXCEPTION');
+  process.on("unhandledRejection", (reason, promise) => {
+    logger.error("Unhandled rejection", "server", undefined, reason, { promise });
+    gracefulShutdown("UNHANDLED_REJECTION");
   });
-
-  process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled rejection', 'server', undefined, reason, { promise });
-    gracefulShutdown('UNHANDLED_REJECTION');
-  });
-})();
+})().catch(error => {
+  logger.error("Fatal startup error", "server", undefined, error);
+  process.exit(1);
+});
