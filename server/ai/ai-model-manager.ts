@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 
 export interface AIModel {
@@ -10,8 +9,6 @@ export interface AIModel {
 }
 
 export class AIModelManager {
-  private anthropic?: Anthropic;
-  private openai?: OpenAI;
   private perplexityApiKey?: string;
   private geminiApiKey?: string;
 
@@ -22,8 +19,6 @@ export class AIModelManager {
 
   private logMissingApiKeys() {
     const missingKeys = [];
-    if (!process.env.ANTHROPIC_API_KEY) missingKeys.push('ANTHROPIC_API_KEY');
-    if (!process.env.OPENAI_API_KEY) missingKeys.push('OPENAI_API_KEY');
     if (!process.env.GEMINI_API_KEY) missingKeys.push('GEMINI_API_KEY');
     if (!process.env.PERPLEXITY_API_KEY) missingKeys.push('PERPLEXITY_API_KEY');
 
@@ -33,20 +28,6 @@ export class AIModelManager {
   }
 
   private initializeModels() {
-    // Initialize Anthropic
-    if (process.env.ANTHROPIC_API_KEY) {
-      this.anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
-    }
-
-    // Initialize OpenAI
-    if (process.env.OPENAI_API_KEY) {
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-    }
-
     // Store other API keys
     this.perplexityApiKey = process.env.PERPLEXITY_API_KEY;
     this.geminiApiKey = process.env.GEMINI_API_KEY;
@@ -89,10 +70,6 @@ Provide analysis on:
 Keep response concise and actionable.`;
 
     switch (modelId) {
-      case 'anthropic-claude-sonnet-4':
-        return this.generateWithAnthropic(prompt);
-      case 'openai-gpt-4o':
-        return this.generateWithOpenAI(prompt);
       case 'perplexity-sonar':
         return this.generateWithPerplexity(prompt);
       case 'gemini-pro':
@@ -116,10 +93,6 @@ Creator Details:
 Make the message more personalized and compelling while maintaining professionalism. Focus on phone repair services collaboration.`;
 
     switch (modelId) {
-      case 'anthropic-claude-sonnet-4':
-        return this.generateWithAnthropic(prompt);
-      case 'openai-gpt-4o':
-        return this.generateWithOpenAI(prompt);
       case 'perplexity-sonar':
         return this.generateWithPerplexity(prompt);
       case 'gemini-pro':
@@ -127,29 +100,6 @@ Make the message more personalized and compelling while maintaining professional
       default:
         throw new Error('Model not supported');
     }
-  }
-
-  private async generateWithAnthropic(prompt: string): Promise<string> {
-    if (!this.anthropic) throw new Error('Anthropic not configured');
-
-    const message = await this.anthropic.messages.create({
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
-      model: 'claude-3-sonnet-20240229',
-    });
-
-    return message.content[0].type === 'text' ? message.content[0].text : '';
-  }
-
-  private async generateWithOpenAI(prompt: string): Promise<string> {
-    if (!this.openai) throw new Error('OpenAI not configured');
-
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    return response.choices[0].message.content || '';
   }
 
   private async generateWithPerplexity(prompt: string): Promise<string> {

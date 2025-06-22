@@ -24,22 +24,10 @@ const DEFAULT_MODELS: AIModel[] = [
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
   },
   {
-    id: 'gpt-4',
-    name: 'GPT-4',
-    provider: 'OpenAI',
-    endpoint: 'https://api.openai.com/v1/chat/completions'
-  },
-  {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    provider: 'OpenAI',
-    endpoint: 'https://api.openai.com/v1/chat/completions'
-  },
-  {
-    id: 'claude-3',
-    name: 'Claude 3',
-    provider: 'Anthropic',
-    endpoint: 'https://api.anthropic.com/v1/messages'
+    id: 'perplexity-sonar',
+    name: 'Perplexity Sonar',
+    provider: 'Perplexity',
+    endpoint: 'https://api.perplexity.ai/chat/completions'
   },
   {
     id: 'local-ollama',
