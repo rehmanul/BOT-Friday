@@ -18,7 +18,7 @@ import {
   type ActivityLog,
   type InsertActivityLog,
 } from '../shared/schema';
-import { db } from "./db";
+import { db, getDatabase } from "./db";
 import { eq, desc, and, gte, lte, count, sql } from "drizzle-orm";
 
 export interface IStorage {
@@ -100,18 +100,22 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private get db() {
+    return getDatabase();
+  }
+
   // Users
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await this.db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
   async getUsers(): Promise<User[]> {
-    return await db.select().from(users).orderBy(desc(users.createdAt));
+    return await this.db.select().from(users).orderBy(desc(users.createdAt));
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
+    const [user] = await this.db
       .select()
       .from(users)
       .where(eq(users.username, username));
@@ -119,7 +123,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const [user] = await this.db.insert(users).values(insertUser).returning();
     return user;
   }
 
@@ -127,7 +131,7 @@ export class DatabaseStorage implements IStorage {
     userId: number,
     sessionData: any,
   ): Promise<void> {
-    await db
+    await this.db
       .update(users)
       .set({ tiktokSession: sessionData, updatedAt: new Date() })
       .where(eq(users.id, userId));
@@ -135,7 +139,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserSettings(userId: number) {
     try {
-      const user = await db
+      const user = await this.db
         .select()
         .from(users)
         .where(eq(users.id, userId))
@@ -149,7 +153,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserSettings(userId: number, settings: any) {
     try {
-      const result = await db
+      const result = await this.db
         .update(users)
         .set({ settings, updatedAt: new Date() })
         .where(eq(users.id, userId))
@@ -163,7 +167,7 @@ export class DatabaseStorage implements IStorage {
 
   // Campaigns
   async getCampaigns(userId: number): Promise<Campaign[]> {
-    return await db
+    return await this.db
       .select()
       .from(campaigns)
       .where(eq(campaigns.userId, userId))
@@ -171,7 +175,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCampaign(id: number): Promise<Campaign | undefined> {
-    const [campaign] = await db
+    const [campaign] = await this.db
       .select()
       .from(campaigns)
       .where(eq(campaigns.id, id));
@@ -179,7 +183,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    const [newCampaign] = await db
+    const [newCampaign] = await this.db
       .insert(campaigns)
       .values(campaign)
       .returning();
@@ -190,7 +194,7 @@ export class DatabaseStorage implements IStorage {
     id: number,
     updates: Partial<Campaign>,
   ): Promise<Campaign> {
-    const [updatedCampaign] = await db
+    const [updatedCampaign] = await this.db
       .update(campaigns)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(campaigns.id, id))
@@ -199,13 +203,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCampaign(id: number): Promise<void> {
-    await db.delete(campaigns).where(eq(campaigns.id, id));
+    await this.db.delete(campaigns).where(eq(campaigns.id, id));
   }
 
   // Creators
   async getCreators(filters?: any, limit = 25, offset = 0): Promise<{ creators: Creator[]; total: number }> {
-    let query = db.select().from(creators);
-    let countQuery = db.select({ count: count() }).from(creators);
+    let query = this.db.select().from(creators);
+    let countQuery = this.db.select({ count: count() }).from(creators);
 
     if (filters) {
       const conditions = [];
@@ -234,7 +238,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCreator(id: number): Promise<Creator | undefined> {
-    const [creator] = await db
+    const [creator] = await this.db
       .select()
       .from(creators)
       .where(eq(creators.id, id));
@@ -242,7 +246,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCreatorByUsername(username: string): Promise<Creator | undefined> {
-    const [creator] = await db
+    const [creator] = await this.db
       .select()
       .from(creators)
       .where(eq(creators.username, username));
@@ -250,12 +254,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCreator(creator: InsertCreator): Promise<Creator> {
-    const [newCreator] = await db.insert(creators).values(creator).returning();
+    const [newCreator] = await this.db.insert(creators).values(creator).returning();
     return newCreator;
   }
 
   async updateCreator(id: number, updates: Partial<Creator>): Promise<Creator> {
-    const [updatedCreator] = await db
+    const [updatedCreator] = await this.db
       .update(creators)
       .set({ ...updates, lastUpdated: new Date() })
       .where(eq(creators.id, id))
@@ -264,7 +268,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchCreators(query: string): Promise<Creator[]> {
-    return await db
+    return await this.db
       .select()
       .from(creators)
       .where(
@@ -274,7 +278,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCreatorStats(creatorId: number, stats: any): Promise<void> {
-    await db
+    await this.db
       .update(creators)
       .set({
         lastActive: stats.lastActivity,
@@ -287,7 +291,7 @@ export class DatabaseStorage implements IStorage {
     creatorId: number,
     engagementRate: number,
   ): Promise<void> {
-    await db
+    await this.db
       .update(creators)
       .set({ engagementRate })
       .where(eq(creators.id, creatorId));
@@ -297,7 +301,7 @@ export class DatabaseStorage implements IStorage {
     creatorId: number,
     followers: number,
   ): Promise<void> {
-    await db
+    await this.db
       .update(creators)
       .set({ followers })
       .where(eq(creators.id, creatorId));
@@ -307,7 +311,7 @@ export class DatabaseStorage implements IStorage {
     campaignId: number,
     creatorId: number,
   ): Promise<CampaignInvitation | null> {
-    const results = await db
+    const results = await this.db
       .select()
       .from(campaignInvitations)
       .where(
@@ -325,7 +329,7 @@ export class DatabaseStorage implements IStorage {
   async getCampaignInvitations(
     campaignId: number,
   ): Promise<CampaignInvitation[]> {
-    return await db
+    return await this.db
       .select()
       .from(campaignInvitations)
       .where(eq(campaignInvitations.campaignId, campaignId))
@@ -335,7 +339,7 @@ export class DatabaseStorage implements IStorage {
   async createCampaignInvitation(
     invitation: InsertCampaignInvitation,
   ): Promise<CampaignInvitation> {
-    const [newInvitation] = await db
+    const [newInvitation] = await this.db
       .insert(campaignInvitations)
       .values(invitation)
       .returning();
@@ -346,7 +350,7 @@ export class DatabaseStorage implements IStorage {
     id: number,
     updates: Partial<CampaignInvitation>,
   ): Promise<CampaignInvitation> {
-    const [updatedInvitation] = await db
+    const [updatedInvitation] = await this.db
       .update(campaignInvitations)
       .set(updates)
       .where(eq(campaignInvitations.id, id))
@@ -357,7 +361,7 @@ export class DatabaseStorage implements IStorage {
   async getPendingInvitations(
     campaignId: number,
   ): Promise<CampaignInvitation[]> {
-    return await db
+    return await this.db
       .select()
       .from(campaignInvitations)
       .where(
@@ -379,7 +383,7 @@ export class DatabaseStorage implements IStorage {
         return undefined;
       }
 
-      const [session] = await db
+      const [session] = await this.db
         .select()
         .from(browserSessions)
         .where(
@@ -406,7 +410,7 @@ export class DatabaseStorage implements IStorage {
       expiresAt:
         session.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000),
     };
-    const [newSession] = await db
+    const [newSession] = await this.db
       .insert(browserSessions)
       .values(sessionWithTimestamp)
       .returning();
@@ -417,7 +421,7 @@ export class DatabaseStorage implements IStorage {
     id: number,
     updates: Partial<BrowserSession>,
   ): Promise<BrowserSession> {
-    const [updatedSession] = await db
+    const [updatedSession] = await this.db
       .update(browserSessions)
       .set(updates)
       .where(eq(browserSessions.id, id))
@@ -426,7 +430,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deactivateBrowserSessions(userId: number): Promise<void> {
-    await db
+    await this.db
       .update(browserSessions)
       .set({ isActive: false })
       .where(eq(browserSessions.userId, userId));
@@ -434,7 +438,7 @@ export class DatabaseStorage implements IStorage {
 
   // Activity Logs
   async getActivityLogs(userId: number, limit = 50): Promise<ActivityLog[]> {
-    return await db
+    return await this.db
       .select()
       .from(activityLogs)
       .where(eq(activityLogs.userId, userId))
@@ -443,13 +447,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {
-    const [newLog] = await db.insert(activityLogs).values(log).returning();
+    const [newLog] = await this.db.insert(activityLogs).values(log).returning();
     return newLog;
   }
 
   // Analytics
   async getCampaignStats(campaignId: number): Promise<any> {
-    const [sentCount] = await db
+    const [sentCount] = await this.db
       .select({ count: count() })
       .from(campaignInvitations)
       .where(
@@ -459,7 +463,7 @@ export class DatabaseStorage implements IStorage {
         ),
       );
 
-    const [responseCount] = await db
+    const [responseCount] = await this.db
       .select({ count: count() })
       .from(campaignInvitations)
       .where(
@@ -469,7 +473,7 @@ export class DatabaseStorage implements IStorage {
         ),
       );
 
-    const [pendingCount] = await db
+    const [pendingCount] = await this.db
       .select({ count: count() })
       .from(campaignInvitations)
       .where(
@@ -489,7 +493,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDashboardStats(userId: number): Promise<any> {
-    const userCampaigns = await db
+    const userCampaigns = await this.db
       .select()
       .from(campaigns)
       .where(eq(campaigns.userId, userId));
@@ -533,7 +537,7 @@ export class DatabaseStorage implements IStorage {
       // Update existing session or create new one
       const existingSession = await this.getActiveBrowserSession(userId);
       if (existingSession) {
-        await db.update(browserSessions)
+        await this.db.update(browserSessions)
           .set({
             sessionData: tokenData,
             lastActivity: new Date(),
@@ -541,7 +545,7 @@ export class DatabaseStorage implements IStorage {
           })
           .where(eq(browserSessions.id, existingSession.id));
       } else {
-        await db.insert(browserSessions).values({
+        await this.db.insert(browserSessions).values({
           userId: userId,
           sessionData: tokenData,
           isActive: true,

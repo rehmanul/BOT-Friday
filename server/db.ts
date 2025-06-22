@@ -1,4 +1,5 @@
 
+
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { logger } from "./utils/logger";
@@ -39,7 +40,7 @@ export async function initializeDatabase() {
       const sqlite = new Database("dev.db");
       const { drizzle: drizzleSqlite } = await import("drizzle-orm/better-sqlite3");
       
-      db = drizzleSqlite(sqlite, { schema });
+      db = drizzleSqlite(sqlite, { schema: await import("../shared/sqlite-schema") });
       logger.info("SQLite connection established for development", "database");
     }
     
@@ -173,3 +174,6 @@ export async function closeDatabase() {
     logger.info("Database connection closed", "database");
   }
 }
+
+// Export db for backwards compatibility, but ensure it's initialized first
+export { db };
