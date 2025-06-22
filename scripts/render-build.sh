@@ -16,6 +16,9 @@ npx puppeteer browsers install chrome
 echo "Setting up PostgreSQL database..."
 node scripts/setup-postgres.js
 
+echo "Running database migrations..."
+node scripts/migrate.js
+
 # Verify vite is available
 if ! command -v vite &> /dev/null; then
     echo "Vite not found in PATH, using npx..."
