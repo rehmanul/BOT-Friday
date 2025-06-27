@@ -1,0 +1,1 @@
+{"timestamp":"2025-06-27T22:21:41.805Z","level":"INFO","message":"Rate limiter initialized","module":"rate-limiter","metadata":{"hourlyLimit":15,"dailyLimit":200,"weeklyLimit":1000,"minDelayMs":120000}}
