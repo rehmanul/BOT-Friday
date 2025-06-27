@@ -7,6 +7,10 @@ import { logger } from "./utils/logger";
 import { validateEnvironment, getEnvironmentInfo } from "./utils/env-validator";
 import { initializeDatabase } from "./db";
 
+function healthCheckHandler(req: Request, res: Response) {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+}
+
 (async () => {
   // Validate environment variables on startup
   if (!validateEnvironment()) {
@@ -24,7 +28,6 @@ import { initializeDatabase } from "./db";
   }
 
   const app = express();
-  const server = createServer(app);
 
   logger.info("Server starting up", "server", undefined, getEnvironmentInfo());
 
