@@ -1,4 +1,3 @@
-
 import { tiktokAPI } from '../api/tiktok-api';
 import { storage } from '../storage';
 
@@ -6,9 +5,25 @@ export class TikTokService {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private tokenExpiry: number | null = null;
+  private initialized: boolean = false;
 
   constructor() {
-    this.loadStoredTokens();
+    // Don't load tokens in constructor - wait for explicit initialization
+  }
+
+  // Initialize the service and load stored tokens
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    try {
+      await this.loadStoredTokens();
+      this.initialized = true;
+    } catch (error) {
+      console.error('Failed to initialize TikTok service:', error);
+      throw error;
+    }
   }
 
   // Load stored tokens from persistent storage
@@ -85,6 +100,10 @@ export class TikTokService {
 
   // Check if user is authenticated
   async isAuthenticated(): Promise<boolean> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
     if (!this.accessToken) {
       return false;
     }
@@ -112,6 +131,10 @@ export class TikTokService {
   // Send message to creator
   async sendMessage(userId: number, creatorUsername: string, message: string): Promise<boolean> {
     try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       if (!await this.isAuthenticated()) {
         console.error('Not authenticated with TikTok API');
         return false;
@@ -143,6 +166,10 @@ export class TikTokService {
   // Get account information
   async getAccountInfo(): Promise<any> {
     try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       if (!await this.isAuthenticated()) {
         throw new Error('Not authenticated');
       }
@@ -164,6 +191,10 @@ export class TikTokService {
     pageSize?: number;
   }): Promise<any[]> {
     try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       if (!await this.isAuthenticated()) {
         console.error('Not authenticated with TikTok API');
         return [];
@@ -180,6 +211,10 @@ export class TikTokService {
   // Get creator insights
   async getCreatorInsights(creatorId: string): Promise<any> {
     try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       if (!await this.isAuthenticated()) {
         throw new Error('Not authenticated');
       }
@@ -194,6 +229,10 @@ export class TikTokService {
   // Get campaigns
   async getCampaigns(advertiserId: string): Promise<any[]> {
     try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       if (!await this.isAuthenticated()) {
         console.error('Not authenticated with TikTok API');
         return [];
@@ -210,6 +249,10 @@ export class TikTokService {
   // Create campaign
   async createCampaign(advertiserId: string, campaignData: any): Promise<any> {
     try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       if (!await this.isAuthenticated()) {
         throw new Error('Not authenticated');
       }
@@ -224,6 +267,10 @@ export class TikTokService {
   // Get stored messages/activities
   async getStoredActivities(userId: number): Promise<any[]> {
     try {
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
       const activities = await storage.getActivityLogs(userId, 50);
       return activities.map(activity => ({
         userId: activity.userId,
@@ -253,4 +300,22 @@ export class TikTokService {
   }
 }
 
-export const tiktokService = new TikTokService();
+// Singleton instance - will be initialized after database is ready
+let tiktokServiceInstance: TikTokService | null = null;
+
+export function getTikTokService(): TikTokService {
+  if (!tiktokServiceInstance) {
+    tiktokServiceInstance = new TikTokService();
+  }
+  return tiktokServiceInstance;
+}
+
+// Initialize the service after database is ready
+export async function initializeTikTokService(): Promise<TikTokService> {
+  const service = getTikTokService();
+  await service.initialize();
+  return service;
+}
+
+// Legacy export for backward compatibility - will be lazy-initialized
+export const tiktokService = getTikTokService();

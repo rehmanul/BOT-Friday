@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes, setBroadcastFunction } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -99,6 +100,7 @@ function healthCheckHandler(req: Request, res: Response) {
   app.head("/", (req, res) => res.status(200).end());
   app.head("/health", (req, res) => res.status(200).end());
 
+  // Register routes after database initialization
   await registerRoutes(app);
   const { createServer } = await import('http');
   const server = createServer(app);

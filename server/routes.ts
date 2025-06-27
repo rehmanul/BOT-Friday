@@ -1,4 +1,3 @@
-
 import { Express } from "express";
 import { storage } from "./storage";
 import { insertCampaignSchema, insertCampaignInvitationSchema } from "../shared/sqlite-schema";
@@ -12,7 +11,7 @@ import { rateLimiter } from "./automation/rate-limiter";
 import { automationTester } from "./utils/test-helpers";
 import { logger } from "./utils/logger";
 import { z } from "zod";
-import { tiktokService } from "./services/tiktok-service";
+import { getTikTokService, initializeTikTokService } from "./services/tiktok-service";
 
 let broadcastFunction: ((userId: number, message: any) => void) | null = null;
 
@@ -44,6 +43,16 @@ const paginationSchema = z.object({
 });
 
 export async function registerRoutes(app: Express) {
+  // Initialize TikTok service after database is ready
+  let tiktokService: any;
+  try {
+    tiktokService = await initializeTikTokService();
+    logger.info("TikTok service initialized successfully", "server");
+  } catch (error) {
+    logger.warn("TikTok service initialization failed", "server", undefined, error);
+    tiktokService = getTikTokService(); // Use uninitialized service as fallback
+  }
+
   // TikTok OAuth endpoints
   app.get("/api/auth/tiktok", asyncHandler(async (req, res) => {
     const { tiktokAPI } = await import('./api/tiktok-api');
